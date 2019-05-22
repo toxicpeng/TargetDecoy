@@ -5,3 +5,5 @@ sdfsample[[1]]<-sdf1
 sdfsample[[2]]<-sdf2
 K <- sd2gram(sdfsample)
 heatmap(K,Rowv=NA,Colv=NA,scale="none")
+
+##This is a test
