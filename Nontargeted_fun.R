@@ -2700,8 +2700,8 @@ UniqueID<-function(mylib){
     index.del<-c(index.del,i)
   }
   if (length(index.del)>0){
-    mylib<-mylib[-index.del,]
-  }
+    mylib<-mylib[-index.del,]   #This for loop eliminates any table rows with duplicate formulas
+  } 
   
   mylib$SMILES<-as.character(mylib$SMILES)##defactor
   mylib$allscore0<-as.character(mylib$allscore0)
