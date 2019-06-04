@@ -172,4 +172,48 @@ heatmap.plot <- ggplot(data=chlor.long, mapping=aes(x=Sample, y=CpdID, fill=Inte
 # All together
 grid.newpage()
 print(heatmap.plot, vp = viewport(x = 0.4, y = 0.5, width = 0.8, height = 1.0))
-print(dendro.plot, vp = viewport(x = 0.90, y = 0.43, width = 0.2, height = 0.92))
+print(dendro.plot, vp = viewport(x = 0.90, y = 0.455, width = 0.2, height = 0.91))
+
+
+###Faceted Bar Graph for All Chlorine-Containing Compounds###
+
+library(ggplot2)
+library(tidyr)
+library(ggdendro)
+library(reshape2)
+library(ggthemes)
+
+clcpds<-read.csv("C:/Users/skutarna/Google Drive/NTA/TargetDecoy/ChlorAll.csv", header=TRUE)
+clcpds$avg<-log(clcpds$avg)
+
+grid.plot <- ggplot(data=clcpds, mapping=aes(x=CpdID, y=avg))+
+                  geom_bar(stat="identity")+
+                  coord_cartesian(ylim=c(9,15))+
+                  facet_wrap(~Class)+
+                  xlab(label="Compound #")+
+                  ylab(label="Log Average Intensity")+
+                  scale_x_continuous(breaks = pretty(clcpds$CpdID, n = 25))+
+                  theme(axis.text.x = element_text(size = 6))               
+  
+print(grid.plot)
+
+
+
+###Chlorinated Azo Dyes by Colour and Dye Type###
+
+library(ggplot2)
+library(tidyr)
+library(ggthemes)
+
+cldyes<-read.csv("C:/Users/skutarna/Google Drive/NTA/TargetDecoy/KnownDyes.csv", header=TRUE)
+cldyes$avg<-log(cldyes$avg)
+
+color.plot <- ggplot(data=cldyes, mapping=aes(x=Colour, y=avg))+
+  geom_bar(stat="identity")+
+  coord_cartesian(ylim=c(9,15))+
+  facet_grid(.~Type)+
+  xlab(label="Dye Colour")+
+  ylab(label="Log Average Intensity")
+             
+print(color.plot)
+
