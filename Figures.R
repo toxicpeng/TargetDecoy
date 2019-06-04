@@ -127,3 +127,49 @@ smiles<-Uniqueid$SMILES[ID]
 sdf<-smiles2sdf(smiles)
 plot(sdf)
 
+
+###Chlorinated Azo Dyes Heatmap with Dendrogram###
+
+library(ggplot2)
+library(tidyr)
+library(ggdendro)
+library(reshape2)
+
+chlor<-read.csv("C:/Users/skutarna/Google Drive/NTA/TargetDecoy/ClAzoDyes.csv", header=TRUE)
+
+# Scale data
+chlor.scaled <- chlor
+chlor.scaled[, c(3:26)] <- scale(chlor.scaled[, 3:26])
+
+# Run clustering
+chlor.matrix <- as.matrix(chlor.scaled[, -c(1:3)])
+rownames(chlor.matrix) <- chlor.scaled$CpdID
+chlor.dendro <- as.dendrogram(hclust(d = dist(x = chlor.matrix)))
+
+# Create dendrogram
+dendro.plot <- ggdendrogram(data = chlor.dendro, rotate = TRUE)+
+            theme(axis.text.x = element_blank())
+
+# Data reordering
+chlor.long <- gather(data = chlor.scaled, key = Sample, value = Intensity, -c(1:2), -c(27:33))
+# Extract the order of the tips in the dendrogram
+chlor.order <- order.dendrogram(chlor.dendro)
+# Order the levels according to their position in the cluster
+chlor.long$CpdID <- factor(x = chlor.long$CpdID,
+                               levels = chlor.scaled$CpdID[chlor.order], 
+                               ordered = TRUE)
+
+# Heatmap
+heatmap.plot <- ggplot(data=chlor.long, mapping=aes(x=Sample, y=CpdID, fill=Intensity)) +
+      geom_tile()+
+      xlab(label="Sample")+
+      scale_fill_gradient(name="Intensity", low="white", high="black")+
+      theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "top")
+
+# All together
+grid.newpage()
+print(heatmap.plot, vp = viewport(x = 0.4, y = 0.5, width = 0.8, height = 1.0))
+print(dendro.plot, vp = viewport(x = 0.90, y = 0.43, width = 0.2, height = 0.92))
