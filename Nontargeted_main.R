@@ -19,14 +19,14 @@ library(caTools)
 library(seqinr)
 library(rcdk)
 data(iso_list)
-path<-"C:/Rprogram/Target_Decoy"
-path.data<-"C:/Rprogram/Target_Decoy/data"
-path.out<-"C:/Rprogram/Target_Decoy/Caldata"
-path.db<-"C:/Rprogram/Target_Decoy/SMILES_DATABASE"
-path.sirius<-"C:/Rprogram/Target_Decoy/Sirius"
-path.siriusresult<-"C:/Rprogram/Target_Decoy/Sirius/results"
-path.calms2<-"C:/Rprogram/Target_Decoy/400_500"
-setwd(path)
+path<-getwd()##If you opened the current file via the R project, the following directory assignments will be correct
+path.data<-paste(path,"/data", sep="")
+path.out<-paste(path,"/refCal", sep="")
+path.db<-paste(path,"/SMILES_DATABASE", sep="")
+path.sirius<-paste(path,"/Sirius", sep="")
+path.siriusresult<-paste(path,"/Sirius/results", sep="")
+path.calms2<-paste(path,"/400_500", sep="")
+
 source("Nontargeted_fun.r")
 polarity<--1##if neg -1, if pos 1
 adducts.input<-c('[M]-','[M-H]-','[M-Br+O]-','[M-H-H2O]-','[M+Cl]-','[M+CH2O2-H]-')

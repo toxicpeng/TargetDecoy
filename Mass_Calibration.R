@@ -8,11 +8,11 @@ library(isopat)
 library(gtools)
 library(caTools)
 data(iso_list)
-path<-"C:/Rprogram/Target_Decoy"
-path.data<-"C:/Rprogram/Target_Decoy/data"
-path.out<-"C:/Rprogram/Target_Decoy/Caldata"
-path.db<-"C:/Rprogram/Target_Decoy/SMILES_DATABASE"
-setwd(path)
+path<-getwd()##If you opened the current file via the R project, the following directory assignments will be correct
+path.data<-paste(path,"/data", sep="")
+path.out<-paste(path,"/refCal", sep="")
+path.db<-paste(path,"/SMILES_DATABASE", sep="")
+
 source("Nontargeted_fun.r")
 polarity<--1##if neg -1, if pos 1
 LockMass<-c(131.9614,165.0188,172.956991,227.201104,255.232405,312.972263,411.12912)##Lock Mass, C8H5O4, C14H27O2, C16H31O2, humic acid
@@ -75,8 +75,6 @@ for (i in 1:length(msfiles)){
   if (polarity==-1){
     xrawdata<-MassCal(xrawdata,LockMass.NEG,'NEG',3)}
   setwd(path.out)
-  name<-strsplit(msfiles[i],'[.]')
-  name<-name[[1]]
-  name<-name[1]
+  name<-msfiles[i]
   write.mzdata(xrawdata,name)####save the calibrated data to new files, msndata cannot be stored
 }
