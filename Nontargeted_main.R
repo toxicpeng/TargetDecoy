@@ -256,7 +256,8 @@ setwd(path.data)
 msfiles<-list.files()
 xraw<-xcmsRaw(msfiles[1],includeMSn=TRUE)
 precursor<-preclist(xraw)
-weightK<-c(1,1,1,1,1,1)#weight for MS1, ms2, ionmode, neutral, characteristic, and adducts, rt
+weightK<-c(1,1,1,1,1,1)#weight for MS1, ms2, ionmode, neutral, characteristic, and adducts
+#weightK<-c(1,1,1,0.8,0.6,1)
 
 #build MS files
 setwd(path.sirius)
@@ -307,9 +308,9 @@ write.table(output,file='FinalID_200.csv',sep=',',row.names = FALSE)
 #--------------------------
 #unique ID
 #-------------------------
-Allcpd<-read.table("AllID.csv",header=TRUE,sep=',',fill=TRUE)
+Allcpd<-read.table("Sulfur.csv",header=TRUE,sep=',',fill=TRUE)
 Uniqueid<-UniqueID(Allcpd)
-write.table(Uniqueid,file='UniqueID.csv',sep=',',row.names = FALSE)
+write.table(Uniqueid,file='SulfurUnique.csv',sep=',',row.names = FALSE)
 
 
 
