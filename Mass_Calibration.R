@@ -10,7 +10,7 @@ library(caTools)
 data(iso_list)
 rootdir<-getwd()##If you opened the current file via the R project, the following directory assignments will be correct
 path<-rootdir
-path.data<-paste(path,"/data", sep="")
+path.data<-paste(path,"/data/20190426", sep="")
 path.out<-paste(path,"/refCal", sep="")
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
 
@@ -27,10 +27,10 @@ msfiles<-list.files()
 mzwin<-5###2.5ppm for mz cutoff
 timewin<-0.5###30 sec for rt cutoff
 timewin2<-2####60 sec for rt cutoff, since library was established for a long time
-xset<-xcmsSet(msfiles[1:3],method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,nSlaves=1,polarity="negative")##peak width, the min and max range of chromatographic peaks in seconds
-result<-findlock(xset,2000,0.002)##xset, intensity threshold, mzstep
+xset<-xcmsSet(msfiles[1:102],method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,nSlaves=1,polarity="negative")##peak width, the min and max range of chromatographic peaks in seconds
+result<-findlock(xset,1000,0.002)##xset, intensity threshold, mzstep
 setwd(path)
-write.table(result, file="lockmassProd.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
+write.table(result, file="lockmassProd1000neg.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
 
 
 #################plot LockMass######################
