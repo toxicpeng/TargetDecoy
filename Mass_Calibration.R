@@ -8,7 +8,8 @@ library(isopat)
 library(gtools)
 library(caTools)
 data(iso_list)
-path<-getwd()##If you opened the current file via the R project, the following directory assignments will be correct
+rootdir<-getwd()##If you opened the current file via the R project, the following directory assignments will be correct
+path<-rootdir
 path.data<-paste(path,"/data", sep="")
 path.out<-paste(path,"/refCal", sep="")
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
@@ -26,6 +27,11 @@ msfiles<-list.files()
 mzwin<-5###2.5ppm for mz cutoff
 timewin<-0.5###30 sec for rt cutoff
 timewin2<-2####60 sec for rt cutoff, since library was established for a long time
+xset<-xcmsSet(msfiles[1:3],method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,nSlaves=1,polarity="negative")##peak width, the min and max range of chromatographic peaks in seconds
+result<-findlock(xset,2000,0.002)##xset, intensity threshold, mzstep
+setwd(path)
+write.table(result, file="lockmassProd.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
+
 
 #################plot LockMass######################
 setwd(path.data)
@@ -34,7 +40,7 @@ testMass<-255.2324
 polarity<--1##if neg -1, if pos 1
 LockMass.POS<-c(81.070425,93.070425,105.070425,139.11229,151.042199,171.138505,413.26696,445.120583)##Lock Mass for positive
 setwd(path)
-LockMass.NEG<-read.table("lockmass.csv",header=TRUE,sep=',')
+LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
 if (polarity==1){
   LockMass<-LockMass.POS
