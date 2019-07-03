@@ -41,7 +41,7 @@ findlock<-function(xset.input,intthresh,stepmz){
       if (minintensity>intthresh){
         newpeak<-rbind(newpeak,c(mz.value,minintensity,k))
         p<-p+1
-        print(c("running...",p))
+        print(c("running...",p,"sample =",k))
       }
     }
   }
