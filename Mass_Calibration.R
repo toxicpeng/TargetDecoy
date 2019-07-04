@@ -10,7 +10,9 @@ library(caTools)
 data(iso_list)
 rootdir<-getwd()##If you opened the current file via the R project, the following directory assignments will be correct
 path<-rootdir
-path.data<-paste(path,"/data/20190426", sep="")
+path.data<-paste(path,"/data", sep="")
+path.dust<-paste(path,"/dust analysis", sep="")
+path.prod<-paste(path,"/products analysis", sep="")
 path.out<-paste(path,"/refCal", sep="")
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
 
@@ -22,7 +24,8 @@ ppm<-2
 ppm.ms2<-3##ms2 spectra accuracy
 
 ##########identify lockmass#############
-setwd(path.data)
+path.lockdata<-paste(path.data,"/20190426", sep="")
+setwd(path.lockdata)
 msfiles<-list.files()
 mzwin<-5###2.5ppm for mz cutoff
 timewin<-0.5###30 sec for rt cutoff
