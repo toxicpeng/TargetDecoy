@@ -23,26 +23,35 @@ electron<-0.0005485799
 ppm<-2
 ppm.ms2<-3##ms2 spectra accuracy
 
-##########identify lockmass#############
 path.lockdata<-paste(path.data,"/20190426", sep="")
+xrawdata<-NULL
+xrawdata<-list()
 setwd(path.lockdata)
 msfiles<-list.files()
+msfiles<-msfiles[199:294]
+for (i in 1:length(msfiles)){
+  xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
+  xrawdata[i]<-xdata
+}
+
+##########identify lockmass#############
 mzwin<-5###2.5ppm for mz cutoff
 timewin<-0.5###30 sec for rt cutoff
 timewin2<-2####60 sec for rt cutoff, since library was established for a long time
-xset<-xcmsSet(msfiles[1:102],method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,nSlaves=1,polarity="negative")##peak width, the min and max range of chromatographic peaks in seconds
-result<-findlock(xset,1000,0.002)##xset, intensity threshold, mzstep
-setwd(path)
-write.table(result, file="lockmassProd1000neg.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
-
+xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,nSlaves=1,polarity="negative")##peak width, the min and max range of chromatographic peaks in seconds
+result<-findlock(xrawdata,xset,2000,0.002)##xset, intensity threshold, mzstep
+setwd(path.prod)
+write.table(result, file="lockmassProd2000_neg300_500.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
+##Reference Note: This function found 802 masses when run on the 100_300_Neg sample set (no blanks)
 
 #################plot LockMass######################
-setwd(path.data)
+setwd(path.lockdata)
 msfiles<-list.files()
+msfiles<-msfiles[1:102]
 testMass<-255.2324
 polarity<--1##if neg -1, if pos 1
 LockMass.POS<-c(81.070425,93.070425,105.070425,139.11229,151.042199,171.138505,413.26696,445.120583)##Lock Mass for positive
-setwd(path)
+setwd(path.prod)
 LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
 if (polarity==1){
@@ -50,9 +59,9 @@ if (polarity==1){
 }else{
   LockMass<-LockMass.NEG
 }
-setwd(path.data)
+setwd(path.lockdata)
 xrawdata<-xcmsRaw(msfiles[1])
-ppmshift<-plotlock(xrawdata,testMass,10)
+ppmshift<-plotlock(xrawdata,LockMass,10)
 
 ##############initial curve fitting using overall lockmass############
 ppmshift<-plotlock(xrawdata,LockMass,10)
@@ -74,16 +83,25 @@ lock.shift<-(lock.shift$lockmass-LockMass.cal)*10^6/LockMass.cal
 
 
 ####################Mass Calibration###############
-setwd(path.data)
-msfiles<-list.files()
+
+
+setwd(path.prod)
+LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
+LockMass.NEG<-LockMass.NEG$Lock
+path.caldata<-paste(path.data,"/testCal",sep="")
+
+setwd(path.lockdata)
 for (i in 1:length(msfiles)){
-  setwd(path.data)
-  xrawdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
+  setwd(path.lockdata)
+  #xrawdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
   if (polarity==1){
-    xrawdata<-MassCal(xrawdata,LockMass.POS,'POS',3)}###lockshift is used to preliminarly adjust searching space
+    xrawcaldata<-MassCal(xrawdata[[i]],LockMass.POS,'POS',3)}###lockshift is used to preliminarly adjust searching space
   if (polarity==-1){
-    xrawdata<-MassCal(xrawdata,LockMass.NEG,'NEG',3)}
-  setwd(path.out)
+    xrawcaldata<-MassCal(xrawdata[[i]],LockMass.NEG,'NEG',3)}
+  setwd(path.caldata)
   name<-msfiles[i]
-  write.mzdata(xrawdata,name)####save the calibrated data to new files, msndata cannot be stored
+  write.mzdata(xrawcaldata,name)####save the calibrated data to new files, msndata cannot be stored
+  print(c(i,"out of",length(msfiles)))
 }
+
+
