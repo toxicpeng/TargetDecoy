@@ -41,7 +41,7 @@ timewin2<-2####60 sec for rt cutoff, since library was established for a long ti
 xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,nSlaves=1,polarity="negative")##peak width, the min and max range of chromatographic peaks in seconds
 result<-findlock(xrawdata,xset,2000,0.002)##xset, intensity threshold, mzstep
 setwd(path.prod)
-write.table(result, file="lockmassProd2000_neg300_500.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
+write.table(result, file="lockmassProd2000_neg300_500_noblanks.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
 ##Reference Note: This function found 802 masses when run on the 100_300_Neg sample set (no blanks)
 
 #################plot LockMass######################
