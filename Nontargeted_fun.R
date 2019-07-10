@@ -35,10 +35,22 @@ findlock<-function(xrawAll,xset.input,intthresh,stepmz){
       mz.max<-mz.value+0.0005
       mz.max<-min(mz.max,xraw@mzrange[2])
       rt.min<-(min(xraw@scantime)) #range of analysis is the entire chromatograph
-      rt.max<-(max(xraw@scantime)-180) #the first and last 3 minutes are skipped to avoid sections with no analytes
+      rt.max<-(max(xraw@scantime)-60) #the first and last 3 minutes are skipped to avoid sections with no analytes
       peaks<-rawEIC(xraw,mzrange=cbind(mz.min,mz.max),rtrange=cbind(rt.min, rt.max))
-      peaklist<-peaks$intensity
-      minintensity<-min(peaklist)
+
+      peaklist<-unlist(peaks$intensity)
+      newlist<-NULL
+      for(i in 1:length(peaklist)){
+        if (peaklist[i]>0){newlist<-c(newlist,peaklist[i])}
+        else if (is.na(peaklist[i+1])==TRUE){next}
+        else if (peaklist[i+1]>0){next} ##allows mz values through which do not have consecutive zero intensity values
+        else {newlist<-c(newlist,peaklist[i])}}
+      if (length(newlist)==0){next}
+      minintensity<-min(newlist)
+      
+      
+      
+      
       if (minintensity>intthresh){
         newpeak<-rbind(newpeak,c(mz.value,minintensity,k))
         p<-p+1
