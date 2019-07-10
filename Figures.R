@@ -217,3 +217,47 @@ color.plot <- ggplot(data=cldyes, mapping=aes(x=Colour, y=avg))+
              
 print(color.plot)
 
+
+###Lockmass Calibration - Searching Space Reduction Figure###
+
+library(ggplot2)
+library(ggthemes)
+
+data5ppm<-read.csv("C:/Users/skutarna/Documents/MSc 2/NTA/Algorithm Paper/formulae5ppm.csv", header=TRUE)
+names(data5ppm)<-c("mz","results")
+
+group10<-NULL
+group10<-data.frame()
+for (i in 1:length(data5ppm[,1])){
+  tens<-signif(data5ppm[i,1],2)
+  group10[i,1]<-tens
+  group10[i,2]<-data5ppm[i,2]
+}
+names(group10)<-c("mz","results")
+group10data<-aggregate(group10[,2],list(group10[,1]),max)
+names(group10data)<-c("mz","results")
+
+group100<-NULL
+group100<-data.frame()
+for (i in 1:length(data5ppm[,1])){
+  hundreds<-signif(data5ppm[i,1],1)
+  group100[i,1]<-hundreds
+  group100[i,2]<-data5ppm[i,2]
+}
+names(group100)<-c("mz","results")
+group100data<-aggregate(group100[,2],list(group100[,1]),max)
+names(group100data)<-c("mz","results")
+
+formula.plot <- ggplot(group10data, aes(mz,results))+
+  geom_area(color="black")+
+  stat_smooth()+
+  xlab(label="m/z")+
+  ylab(label="# of formulas")
+
+print(formula.plot)
+
+
+
+
+
+
