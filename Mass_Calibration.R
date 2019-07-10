@@ -19,7 +19,7 @@ path.db<-paste(path,"/SMILES_DATABASE", sep="")
 setwd(path)
 source("Nontargeted_fun.r")
 polarity<--1##if neg -1, if pos 1
-LockMass<-c(131.9614,165.0188,172.956991,227.201104,255.232405,312.972263,411.12912)##Lock Mass, C8H5O4, C14H27O2, C16H31O2, humic acid
+#LockMass<-c(131.9614,165.0188,172.956991,227.201104,255.232405,312.972263,411.12912)##Lock Mass, C8H5O4, C14H27O2, C16H31O2, humic acid
 electron<-0.0005485799
 ppm<-2
 ppm.ms2<-3##ms2 spectra accuracy
@@ -29,7 +29,7 @@ xrawdata<-NULL
 xrawdata<-list()
 setwd(path.lockdata)
 msfiles<-list.files()
-msfiles<-msfiles[1:96]
+msfiles<-msfiles[1:5]
 for (i in 1:length(msfiles)){
   xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
   xrawdata[i]<-xdata
