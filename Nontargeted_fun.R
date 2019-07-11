@@ -533,7 +533,8 @@ MassCal<-function(xraw,LockMass,input,ppminput){
       next}
     lock.shift$shift[i]<-mean(temp[index])
   }
-  lock.shift<-lock.shift[-index.save,]##delete those lockmass not detected
+  if (length(index.save)>0){
+  lock.shift<-lock.shift[-index.save,]}##delete those lockmass not detected
   lock.shift$shift<-lock.shift$shift*10^(-6)
   msnmzlist<-xraw@env$msnMz
   mzlist<-cbind(msnmzlist,1:length(msnmzlist))
