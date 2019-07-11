@@ -22,26 +22,39 @@ plotlock<-function(xraw,Lockmass,ppm){
 
 
 ##############function to identify lockmass, written by Steven 2017/12/20
-findlock<-function(xset.input,intthresh,stepmz){
+findlock<-function(xrawAll,xset.input,intthresh,stepmz){
   newpeak<-NULL
   p<-0
   msfile<-filepaths(xset.input)
   for (k in 1:length(unlist(phenoData(xset.input)))){
-    xraw<-xcmsRaw(msfile[k])
+    #xraw<-xcmsRaw(msfile[k])  Old code, kept just in case
+    xraw<-xrawAll[[k]]
     for (mz.value in seq(from=min(xraw@mzrange),to=max(xraw@mzrange),by=stepmz)){
       mz.min<-mz.value-0.0005 
       mz.min<-max(mz.min, xraw@mzrange[1])
       mz.max<-mz.value+0.0005
       mz.max<-min(mz.max,xraw@mzrange[2])
       rt.min<-(min(xraw@scantime)) #range of analysis is the entire chromatograph
-      rt.max<-(max(xraw@scantime)-180) #the first and last 3 minutes are skipped to avoid sections with no analytes
+      rt.max<-(max(xraw@scantime)-60) #the first and last 3 minutes are skipped to avoid sections with no analytes
       peaks<-rawEIC(xraw,mzrange=cbind(mz.min,mz.max),rtrange=cbind(rt.min, rt.max))
-      peaklist<-peaks$intensity
-      minintensity<-min(peaklist)
+
+      peaklist<-unlist(peaks$intensity)
+      newlist<-NULL
+      for(i in 1:length(peaklist)){
+        if (peaklist[i]>0){newlist<-c(newlist,peaklist[i])}
+        else if (is.na(peaklist[i+1])==TRUE){next}
+        else if (peaklist[i+1]>0){next} ##allows mz values through which do not have consecutive zero intensity values
+        else {newlist<-c(newlist,peaklist[i])}}
+      if (length(newlist)==0){next}
+      minintensity<-min(newlist)
+      
+      
+      
+      
       if (minintensity>intthresh){
         newpeak<-rbind(newpeak,c(mz.value,minintensity,k))
         p<-p+1
-        print(c("running...",p))
+        print(c("running...",p,"sample =",k))
       }
     }
   }
@@ -84,6 +97,7 @@ CalFun<-function(method,x,y){
 
 #########predicfunctions#######
 PredictFun<-function(obj,x){
+  library(stats)
   y<-predict(obj,data.frame(x=x))
   return(y)}     
 
@@ -134,7 +148,7 @@ if (nrow(table.single)>8&&R.single>0.9){
     calmass3<-NULL
     if (length(savefun)>0){
     if (R.single<0.8||nrow(table.single)<5){####if fitting is poor and inputfun exists, use the fitted curve saved before
-      fit.single<-inputfun
+      fit.single<-savefun
     }}
     index<-which(mzlist<max(table[,1]))
     index.rep<-which(mzlist[index]>min(table[,1]))
@@ -143,7 +157,7 @@ if (nrow(table.single)>8&&R.single>0.9){
       masserror<-PredictFun(fit.single,mzlist[index])
       calmass1<-mzlist[index]*(1-masserror)}
     index2<-which(mzlist>=max(table[,1]))
-    masserror2<-PredictFun(fit.single,269.1389)###predict at 269.1389
+    masserror2<-PredictFun(fit.single,269.1389)###predict at 269.1389 <<<<<<<<<<<<<<<<<<<<<<<<<<This was the breakpoint between polynomial and linear fitting.  Change this value to automatic detection.
     if (length(index2)>0){
       calmass2<-mzlist[index2]*(1-masserror2)}
     index3<-which(mzlist<=min(table.single[,1]))###lesser than the minium one, use fitted function
@@ -626,7 +640,8 @@ MassCal<-function(xraw,LockMass,input,ppminput){
       calmz<-output[[1]]
       temp.fun<-output[[2]]
       xraw@env$mz[correctindex]<-calmz}
-  }
+    print(i)
+    }
   return(xraw)}
 
 #############function to smooth the mz across three data points############
@@ -2703,8 +2718,8 @@ UniqueID<-function(mylib){
     index.del<-c(index.del,i)
   }
   if (length(index.del)>0){
-    mylib<-mylib[-index.del,]
-  }
+    mylib<-mylib[-index.del,]   #This for loop eliminates any table rows with duplicate formulas
+  } 
   
   mylib$SMILES<-as.character(mylib$SMILES)##defactor
   mylib$allscore0<-as.character(mylib$allscore0)

@@ -19,14 +19,13 @@ library(caTools)
 library(seqinr)
 library(rcdk)
 data(iso_list)
-path<-"C:/Rprogram/Target_Decoy"
-path.data<-"C:/Rprogram/Target_Decoy/dust"
-path.out<-"C:/Rprogram/Target_Decoy/Caldata"
-path.db<-"C:/Rprogram/Target_Decoy/SMILES_DATABASE"
-path.sirius<-"C:/Rprogram/Target_Decoy/Sirius"
-path.siriusresult<-"C:/Rprogram/Target_Decoy/Sirius/results"
-path.calms2<-"C:/Rprogram/Target_Decoy/400_500"
-setwd(path)
+path<-getwd()##If you opened the current file via the R project, the following directory assignments will be correct
+path.data<-paste(path,"/data", sep="")
+path.out<-paste(path,"/refCal", sep="")
+path.db<-paste(path,"/SMILES_DATABASE", sep="")
+path.sirius<-paste(path,"/Sirius", sep="")
+path.siriusresult<-paste(path,"/Sirius/results", sep="")
+path.calms2<-paste(path,"/400_500", sep="")
 source("Nontargeted_fun.r")
 polarity<--1##if neg -1, if pos 1
 adducts.input<-c('[M]-','[M-H]-','[M-Br+O]-','[M-H-H2O]-','[M+Cl]-','[M+CH2O2-H]-')
@@ -257,7 +256,6 @@ msfiles<-list.files()
 xraw<-xcmsRaw(msfiles[1],includeMSn=TRUE)
 precursor<-preclist(xraw)
 weightK<-c(1,1,1,0.8,0.6,1)#weight for MS1, ms2, ionmode, neutral, characteristic, and adducts, rt
-
 #build MS files
 setwd(path.sirius)
 Sirius.build(mylib.Target,Cal.Frag,IsotopeData)
@@ -307,7 +305,7 @@ write.table(output,file='FinalID_200.csv',sep=',',row.names = FALSE)
 #--------------------------
 #unique ID
 #-------------------------
-Allcpd<-read.table("AllID.csv",header=TRUE,sep=',',fill=TRUE)
+Allcpd<-read.table("Sulfur.csv",header=TRUE,sep=',',fill=TRUE)
 Uniqueid<-UniqueID(Allcpd)
 write.table(Uniqueid,file='UniqueID.csv',sep=',',row.names = FALSE)
 write.table(mylib.Target,file='AllID_1ppm.csv',sep=',',row.names = FALSE)

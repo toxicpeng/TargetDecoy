@@ -127,3 +127,216 @@ smiles<-Uniqueid$SMILES[ID]
 sdf<-smiles2sdf(smiles)
 plot(sdf)
 
+
+###Chlorinated Azo Dyes Heatmap with Dendrogram###
+
+library(ggplot2)
+library(tidyr)
+library(ggdendro)
+library(reshape2)
+
+chlor<-read.csv("C:/Users/skutarna/Google Drive/NTA/TargetDecoy/ClAzoDyes.csv", header=TRUE)
+
+# Scale data
+chlor.scaled <- chlor
+chlor.scaled[, c(3:26)] <- scale(chlor.scaled[, 3:26])
+
+# Run clustering
+chlor.matrix <- as.matrix(chlor.scaled[, -c(1:3)])
+rownames(chlor.matrix) <- chlor.scaled$CpdID
+chlor.dendro <- as.dendrogram(hclust(d = dist(x = chlor.matrix)))
+
+# Create dendrogram
+dendro.plot <- ggdendrogram(data = chlor.dendro, rotate = TRUE)+
+            theme(axis.text.x = element_blank())
+
+# Data reordering
+chlor.long <- gather(data = chlor.scaled, key = Sample, value = Intensity, -c(1:2), -c(27:33))
+# Extract the order of the tips in the dendrogram
+chlor.order <- order.dendrogram(chlor.dendro)
+# Order the levels according to their position in the cluster
+chlor.long$CpdID <- factor(x = chlor.long$CpdID,
+                               levels = chlor.scaled$CpdID[chlor.order], 
+                               ordered = TRUE)
+
+# Heatmap
+heatmap.plot <- ggplot(data=chlor.long, mapping=aes(x=Sample, y=CpdID, fill=Intensity)) +
+      geom_tile()+
+      xlab(label="Sample")+
+      scale_fill_gradient(name="Intensity", low="white", high="black")+
+      theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "top")
+
+# All together
+grid.newpage()
+print(heatmap.plot, vp = viewport(x = 0.4, y = 0.5, width = 0.8, height = 1.0))
+print(dendro.plot, vp = viewport(x = 0.90, y = 0.455, width = 0.2, height = 0.91))
+
+
+###Faceted Bar Graph for All Chlorine-Containing Compounds###
+
+library(ggplot2)
+library(tidyr)
+library(ggdendro)
+library(reshape2)
+library(ggthemes)
+
+clcpds<-read.csv("C:/Users/skutarna/Google Drive/NTA/TargetDecoy/ChlorAll.csv", header=TRUE)
+clcpds$avg<-log(clcpds$avg)
+
+grid.plot <- ggplot(data=clcpds, mapping=aes(x=CpdID, y=avg))+
+                  geom_bar(stat="identity")+
+                  coord_cartesian(ylim=c(9,15))+
+                  facet_wrap(~Class)+
+                  xlab(label="Compound #")+
+                  ylab(label="Log Average Intensity")+
+                  scale_x_continuous(breaks = pretty(clcpds$CpdID, n = 25))+
+                  theme(axis.text.x = element_text(size = 6))               
+  
+print(grid.plot)
+
+
+
+###Chlorinated Azo Dyes by Colour and Dye Type###
+
+library(ggplot2)
+library(tidyr)
+library(ggthemes)
+
+cldyes<-read.csv("C:/Users/skutarna/Google Drive/NTA/TargetDecoy/KnownDyes.csv", header=TRUE)
+cldyes$avg<-log(cldyes$avg)
+
+color.plot <- ggplot(data=cldyes, mapping=aes(x=Colour, y=avg))+
+  geom_bar(stat="identity")+
+  coord_cartesian(ylim=c(9,15))+
+  facet_grid(.~Type)+
+  xlab(label="Dye Colour")+
+  ylab(label="Log Average Intensity")
+             
+print(color.plot)
+
+
+###Lockmass Calibration - Searching Space Reduction Figure###
+
+library(ggplot2)
+library(ggthemes)
+
+data5ppm<-read.csv("C:/Users/skutarna/Documents/MSc 2/NTA/Algorithm Paper/formulae5ppm.csv", header=TRUE)
+names(data5ppm)<-c("mz","results")
+
+group10<-NULL
+group10<-data.frame()
+for (i in 1:length(data5ppm[,1])){
+  tens<-signif(data5ppm[i,1],2)
+  group10[i,1]<-tens
+  group10[i,2]<-data5ppm[i,2]
+}
+names(group10)<-c("mz","results")
+group10data<-aggregate(group10[,2],list(group10[,1]),max)
+names(group10data)<-c("mz","results")
+
+group100<-NULL
+group100<-data.frame()
+for (i in 1:length(data5ppm[,1])){
+  hundreds<-signif(data5ppm[i,1],1)
+  group100[i,1]<-hundreds
+  group100[i,2]<-data5ppm[i,2]
+}
+names(group100)<-c("mz","results")
+group100data<-aggregate(group100[,2],list(group100[,1]),max)
+names(group100data)<-c("mz","results")
+
+formula.plot <- ggplot(group10data, aes(mz,results))+
+  geom_area(color="black")+
+  stat_smooth()+
+  xlab(label="m/z")+
+  ylab(label="# of formulas")
+
+print(formula.plot)
+
+
+
+###Reference Compounds Figure - Before and After Calibration###
+
+library(ggplot2)
+
+setwd("E:/Steven/Target Decoy/data/20190426")
+msfilesraw<-list.files()
+msfilesraw<-msfilesraw[1:5]
+xdataraw<-NULL
+xdataraw<-list()
+for (i in 1:length(msfilesraw)){
+  rawlist<-xcmsRaw(msfiles[i])
+  xdataraw[i]<-rawlist
+}
+
+setwd("E:/Steven/Target Decoy/caldata")
+msfilescal<-list.files()
+msfilescal<-msfilescal[1:5]
+xdatacal<-NULL
+xdatacal<-list()
+for (i in 1:length(msfilescal)){
+  callist<-xcmsRaw(msfilescal[i])
+  xdatacal[i]<-callist
+}
+
+azoref<-read.csv("E:/Steven/Target Decoy/dust analysis/azoref.csv", header=TRUE)
+azoref<-azoref$Ref
+reflistraw<-NULL
+ppm<-15/(10^6)
+
+for (m in 1:length(msfilesraw)){
+      xraw<-xdataraw[[m]]
+      plist<-NULL
+      plist<-matrix(data=NA,nrow=length(azoref),ncol=2)
+    for (p in 1:length(azoref)){
+      indexref<-which(abs((xraw@env$mz-azoref[p])/azoref[p])<ppm)
+      indexref2<-which.max(xraw@env$intensity[indexref])
+      indexref<-indexref[indexref2]
+      indexref<-indexref[1]
+      mzmatch<-xraw@env$mz[indexref]
+      plist[p,1]<-mzmatch
+      if (is.na(indexref)){
+        plist[p,1]<-100
+        next}
+      shift<-(xraw@env$mz[indexref]-azoref[p])/azoref[p]##calculate the mass shift
+      plist[p,2]<-shift*10^6
+      print(p)
+      }
+  reflistraw<-rbind(reflistraw,plist)
+  colnames(reflistraw)<-c("mz","shift")
+  }
+setwd("E:/Steven/Target Decoy/products analysis")
+write.table(xcal@env$mz, file="caldata1.csv", sep = ',',row.names=FALSE,col.names=c("mz"))
+
+ 
+reflistcal<-NULL
+ppm<-15/(10^6)
+
+for (m in 1:length(msfilescal)){
+  xcal<-xdatacal[[m]]
+  plist<-NULL
+  plist<-matrix(data=NA,nrow=length(azoref),ncol=2)
+  for (p in 1:length(azoref)){
+    indexref<-which(abs((xcal@env$mz-azoref[p])/azoref[p])<ppm)
+    indexref2<-which.max(xcal@env$intensity[indexref])
+    indexref<-indexref[indexref2]
+    indexref<-indexref[1]
+    mzmatch<-xcal@env$mz[indexref]
+    plist[p,1]<-mzmatch
+    if (is.na(indexref)){
+      plist[p,1]<-100
+      next}
+    shift<-(xcal@env$mz[indexref]-azoref[p])/azoref[p]##calculate the mass shift
+    plist[p,2]<-shift*10^6
+    print(p)
+  }
+  reflistcal<-rbind(reflistcal,plist)
+  colnames(reflistcal)<-c("mz","shift")
+}
+setwd("E:/Steven/Target Decoy/products analysis")
+write.table(reflistcal, file="azoref in caldata.csv", sep = ',',row.names=FALSE,col.names=c("mz","ppm"))
+
+
