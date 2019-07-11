@@ -9,10 +9,10 @@ library(gtools)
 library(caTools)
 data(iso_list)
 path<-"C:/Rprogram/Target_Decoy"
-path.data<-"C:/Rprogram/Target_Decoy/data"
+path.data<-"C:/Rprogram/Target_Decoy/product"
 path.out<-"C:/Rprogram/Target_Decoy/Caldata"
 path.db<-"C:/Rprogram/Target_Decoy/SMILES_DATABASE"
-setwd(path)
+setwd("C:/Rprogram/Target_Decoy/TargetDecoy")
 source("Nontargeted_fun.r")
 polarity<--1##if neg -1, if pos 1
 LockMass<-c(131.9614,165.0188,172.956991,227.201104,255.232405,312.972263,411.12912)##Lock Mass, C8H5O4, C14H27O2, C16H31O2, humic acid
@@ -57,11 +57,13 @@ for (i in 1:length(LockMass)){
     next}
   lock.shift$shift[i]<-mean(temp[index])
 }
-lock.shift<-lock.shift[-index.save,]##delete those lockmass not detected
+if (length(index.save)>0){
+lock.shift<-lock.shift[-index.save,]}##delete those lockmass not detected
 lock.shift$shift<-lock.shift$shift*10^(-6)
 LockMass.cal<-fitlock(lock.shift,lock.shift$lockmass,NULL)
 LockMass.cal<-LockMass.cal[[1]]
 lock.shift<-(lock.shift$lockmass-LockMass.cal)*10^6/LockMass.cal
+plot(LockMass.cal,lock.shift)
 
 
 ####################Mass Calibration###############

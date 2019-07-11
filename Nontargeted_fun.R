@@ -101,7 +101,7 @@ fitlock<-function(lockdf,mzlist,inputfun){
   R.single<-0
   table.single<-table
   kk<-0
-  while(R.single<0.5&&kk<3){##do not delete too many points
+  while(R.single<0.8&&kk<3){##do not delete too many points
     kk<-kk+1
     fitlistall<-list()
     for (k in 1:4){
@@ -114,14 +114,14 @@ fitlock<-function(lockdf,mzlist,inputfun){
     S.single<-summary(fitlistall[[index.single]])
     R.single<-S.single$r.squared
     res.single<-S.single$residuals
-    if (R.single<0.5){
+    if (R.single<0.8){
       index<-which.max(abs(res.single))##the maximal residual error
       table.single<-table.single[-index,]}
   }
   
 #####save the curve fitting if it is pretty good########
 savefun<-inputfun
-if (nrow(table.single)>8&&R.single>0.8){
+if (nrow(table.single)>8&&R.single>0.9){
   savefun<-fitlistall[[index.single]]
 }
 
@@ -2691,6 +2691,8 @@ dbWriteTable(finaldb,'all.TSCA',rawdata)}
 #produce unique ID
 #----------------------------------------
 UniqueID<-function(mylib){
+  mylib$avg<-rowMeans(mylib[,3:(2+length(msfiles))])
+  mylib<-mylib[order(mylib$avg,decreasing=TRUE),]##RANK FROM BIG TO LOW
   index.del<-NULL
   for (i in 2:nrow(mylib)){
     index.formula<-which(mylib$Final[1:(i-1)]==mylib$Final[i])
