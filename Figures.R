@@ -309,7 +309,7 @@ for (m in 1:length(msfilesraw)){
   colnames(reflistraw)<-c("mz","shift")
   }
 setwd("E:/Steven/Target Decoy/products analysis")
-write.table(xcal@env$mz, file="caldata1.csv", sep = ',',row.names=FALSE,col.names=c("mz"))
+write.table(reflistraw, file="azoref in raw2.csv", sep = ',',row.names=FALSE,col.names=c("mz","ppm"))
 
  
 reflistcal<-NULL
