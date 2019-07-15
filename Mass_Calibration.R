@@ -1,4 +1,6 @@
 
+###parameters#####
+rm(list=ls())
 ####################for drinking water, cpp funtion, the oxygen number could be 1.2*carbon+3, cutoff e5, S/N>5, change is.BrCl
 library(xcms)
 library(MassSpecWavelet)
@@ -15,6 +17,7 @@ path.dust<-paste(path,"/dust analysis", sep="")
 path.prod<-paste(path,"/products analysis", sep="")
 path.out<-paste(path,"/refCal", sep="")
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
+path.lockdata<-paste(path,"/Product", sep="")
 
 setwd(path)
 source("Nontargeted_fun.r")
@@ -24,7 +27,6 @@ electron<-0.0005485799
 ppm<-2
 ppm.ms2<-3##ms2 spectra accuracy
 
-path.lockdata<-paste(path.data,"/20190426", sep="")
 xrawdata<-NULL
 xrawdata<-list()
 setwd(path.lockdata)
@@ -36,14 +38,14 @@ for (i in 1:length(msfiles)){
 }
 
 ##########identify lockmass#############
-setwd(path.lockdata)
-mzwin<-5###2.5ppm for mz cutoff
-timewin<-0.5###30 sec for rt cutoff
-timewin2<-2####60 sec for rt cutoff, since library was established for a long time
-xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,nSlaves=1,polarity="negative")##peak width, the min and max range of chromatographic peaks in seconds
-result<-findlock(xrawdata,xset,2000,0.002)##list of xcmsRaw objects, xcmsSet object, intensity threshold, mzstep
-setwd(path.prod)
-write.table(result, file="lockmassProd2000_neg300_500_noblanks2.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
+#setwd(path.lockdata)
+#mzwin<-5###2.5ppm for mz cutoff
+#timewin<-0.5###30 sec for rt cutoff
+#timewin2<-2####60 sec for rt cutoff, since library was established for a long time
+#xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,nSlaves=1,polarity="negative")##peak width, the min and max range of chromatographic peaks in seconds
+#result<-findlock(xrawdata,xset,2000,0.002)##list of xcmsRaw objects, xcmsSet object, intensity threshold, mzstep
+#setwd(path.prod)
+#write.table(result, file="lockmassProd2000_neg300_500_noblanks2.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
 ##Reference Note: This function found 802 masses when run on the 100_300_Neg sample set (no blanks)
 
 #################plot LockMass######################
@@ -75,18 +77,18 @@ for (i in 1:length(LockMass)){
   if (length(index)<1){
     index.save<-c(index.save,i)
     next}
-  lock.shift$shift[i]<-mean(temp[index])
+  lock.shift$shift[i]<-median(temp[index])
 }
-lock.shift<-lock.shift[-index.save,]##delete those lockmass not detected
+if (length(index.save)>0){
+lock.shift<-lock.shift[-index.save,]}##delete those lockmass not detected
 lock.shift$shift<-lock.shift$shift*10^(-6)
 LockMass.cal<-fitlock(lock.shift,lock.shift$lockmass,NULL)
 LockMass.cal<-LockMass.cal[[1]]
 lock.shift<-(lock.shift$lockmass-LockMass.cal)*10^6/LockMass.cal
+plot(LockMass.cal,lock.shift)
 
 
 ####################Mass Calibration###############
-
-
 setwd(path.prod)
 LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock

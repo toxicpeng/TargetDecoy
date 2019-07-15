@@ -258,6 +258,85 @@ print(formula.plot)
 
 
 
+###Reference Compounds Figure - Before and After Calibration###
 
+library(ggplot2)
+
+setwd("E:/Steven/Target Decoy/data/20190426")
+msfilesraw<-list.files()
+msfilesraw<-msfilesraw[1:5]
+xdataraw<-NULL
+xdataraw<-list()
+for (i in 1:length(msfilesraw)){
+  rawlist<-xcmsRaw(msfiles[i])
+  xdataraw[i]<-rawlist
+}
+
+setwd("E:/Steven/Target Decoy/caldata")
+msfilescal<-list.files()
+msfilescal<-msfilescal[1:5]
+xdatacal<-NULL
+xdatacal<-list()
+for (i in 1:length(msfilescal)){
+  callist<-xcmsRaw(msfilescal[i])
+  xdatacal[i]<-callist
+}
+
+azoref<-read.csv("E:/Steven/Target Decoy/dust analysis/azoref.csv", header=TRUE)
+azoref<-azoref$Ref
+reflistraw<-NULL
+ppm<-15/(10^6)
+
+for (m in 1:length(msfilesraw)){
+      xraw<-xdataraw[[m]]
+      plist<-NULL
+      plist<-matrix(data=NA,nrow=length(azoref),ncol=2)
+    for (p in 1:length(azoref)){
+      indexref<-which(abs((xraw@env$mz-azoref[p])/azoref[p])<ppm)
+      indexref2<-which.max(xraw@env$intensity[indexref])
+      indexref<-indexref[indexref2]
+      indexref<-indexref[1]
+      mzmatch<-xraw@env$mz[indexref]
+      plist[p,1]<-mzmatch
+      if (is.na(indexref)){
+        plist[p,1]<-100
+        next}
+      shift<-(xraw@env$mz[indexref]-azoref[p])/azoref[p]##calculate the mass shift
+      plist[p,2]<-shift*10^6
+      print(p)
+      }
+  reflistraw<-rbind(reflistraw,plist)
+  colnames(reflistraw)<-c("mz","shift")
+  }
+setwd("E:/Steven/Target Decoy/products analysis")
+write.table(reflistraw, file="azoref in raw2.csv", sep = ',',row.names=FALSE,col.names=c("mz","ppm"))
+
+ 
+reflistcal<-NULL
+ppm<-15/(10^6)
+
+for (m in 1:length(msfilescal)){
+  xcal<-xdatacal[[m]]
+  plist<-NULL
+  plist<-matrix(data=NA,nrow=length(azoref),ncol=2)
+  for (p in 1:length(azoref)){
+    indexref<-which(abs((xcal@env$mz-azoref[p])/azoref[p])<ppm)
+    indexref2<-which.max(xcal@env$intensity[indexref])
+    indexref<-indexref[indexref2]
+    indexref<-indexref[1]
+    mzmatch<-xcal@env$mz[indexref]
+    plist[p,1]<-mzmatch
+    if (is.na(indexref)){
+      plist[p,1]<-100
+      next}
+    shift<-(xcal@env$mz[indexref]-azoref[p])/azoref[p]##calculate the mass shift
+    plist[p,2]<-shift*10^6
+    print(p)
+  }
+  reflistcal<-rbind(reflistcal,plist)
+  colnames(reflistcal)<-c("mz","shift")
+}
+setwd("E:/Steven/Target Decoy/products analysis")
+write.table(reflistcal, file="azoref in caldata.csv", sep = ',',row.names=FALSE,col.names=c("mz","ppm"))
 
 
