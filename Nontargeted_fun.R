@@ -545,7 +545,7 @@ MassCal<-function(xraw,LockMass,input,ppminput){
     if (length(index)<1){
       index.save<-c(index.save,i)
       next}
-    lock.shift$shift[i]<-mean(temp[index])
+    lock.shift$shift[i]<-median(temp[index])
   }
   if (length(index.save)>0){
   lock.shift<-lock.shift[-index.save,]}##delete those lockmass not detected
