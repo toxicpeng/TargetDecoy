@@ -160,7 +160,8 @@ if (nrow(table.single)>8&&R.single>0.9){
       masserror<-PredictFun(fit.single,mzlist[index])
       calmass1<-mzlist[index]*(1-masserror)}
     index2<-which(mzlist>=max(table[,1]))
-    masserror2<-PredictFun(fit.single,269.1389)###predict at 269.1389 <<<<<<<<<<<<<<<<<<<<<<<<<<This was the breakpoint between polynomial and linear fitting.  Change this value to automatic detection.
+#    masserror2<-PredictFun(fit.single,269.1389)###predict at 269.1389 <<<<<<<<<<<<<<<<<<<<<<<<<<This was the breakpoint between polynomial and linear fitting.  Change this value to automatic detection.
+    masserror2<-(mzlist[index2]*6.778e-09)+(-3.389e-06)
     if (length(index2)>0){
       calmass2<-mzlist[index2]*(1-masserror2)}
     index3<-which(mzlist<=min(table.single[,1]))###lesser than the minium one, use fitted function

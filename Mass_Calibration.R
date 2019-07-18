@@ -40,9 +40,9 @@ xrawdata<-NULL
 xrawdata<-list()
 setwd(path.lockdata)
 msfiles<-list.files()
-msfiles<-msfiles[1:96]
+msfiles<-msfiles[1:5]
 for (i in 1:length(msfiles)){
-  xdata<-xcmsRaw(msfiles[i],includeMSn=FALSE)
+  xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
   xrawdata[i]<-xdata
 }
 
@@ -102,7 +102,7 @@ plot(LockMass.cal,lock.shift)
 setwd(path.prod)
 LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
-path.caldata<-paste(path,"/caldata",sep="")
+path.caldata<-paste(path,"/caldata_July18_singlepluslinear",sep="")
 
 setwd(path.lockdata)
 for (i in 1:length(msfiles)){
