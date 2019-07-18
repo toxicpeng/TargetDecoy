@@ -29,32 +29,33 @@ findlock<-function(xrawAll,xset.input,intthresh,stepmz){
   for (k in 1:length(unlist(phenoData(xset.input)))){
     #xraw<-xcmsRaw(msfile[k])  Old code, kept just in case
     xraw<-xrawAll[[k]]
-    for (mz.value in seq(from=min(xraw@mzrange),to=max(xraw@mzrange),by=stepmz)){
+    for (mz.value in seq(from=300,to=500,by=stepmz)){
       mz.min<-mz.value-0.0005 
       mz.min<-max(mz.min, xraw@mzrange[1])
       mz.max<-mz.value+0.0005
       mz.max<-min(mz.max,xraw@mzrange[2])
-      rt.min<-(min(xraw@scantime)) #range of analysis is the entire chromatograph
-      rt.max<-(max(xraw@scantime)-60) #the first and last 3 minutes are skipped to avoid sections with no analytes
+      rt.min<-(min(xraw@scantime)-60) #range of analysis is the entire chromatograph
+      rt.max<-(max(xraw@scantime)-60) #the first and last 1 minute are skipped to avoid sections with no analytes
       peaks<-rawEIC(xraw,mzrange=cbind(mz.min,mz.max),rtrange=cbind(rt.min, rt.max))
-
+      if(mz.value==300 || mz.value==400){
+        print(c("current mass=",mz.value,"sample=",k,"results so far=",p))
+      }
+      
       peaklist<-unlist(peaks$intensity)
       newlist<-NULL
       for(i in 1:length(peaklist)){
         if (peaklist[i]>0){newlist<-c(newlist,peaklist[i])}
-        else if (is.na(peaklist[i+1])==TRUE){next}
-        else if (peaklist[i+1]>0){next} ##allows mz values through which do not have consecutive zero intensity values
+        else if (is.na(peaklist[i+1])==TRUE||is.na(peaklist[i+2])==TRUE||is.na(peaklist[i+3])==TRUE||is.na(peaklist[i+4])==TRUE){next}
+        else if (peaklist[i+1]>0||peaklist[i+2]>0||peaklist[i+3]>0||peaklist[i+4]>0){next} ##allows mz values through which do not have consecutive zero intensity values
         else {newlist<-c(newlist,peaklist[i])}}
       if (length(newlist)==0){next}
+     
       minintensity<-min(newlist)
-      
-      
-      
       
       if (minintensity>intthresh){
         newpeak<-rbind(newpeak,c(mz.value,minintensity,k))
         p<-p+1
-        print(c("running...",p,"sample =",k))
+        #print(c("running...",p,"sample =",k))
       }
     }
   }
@@ -93,6 +94,8 @@ CalFun<-function(method,x,y){
     fits<-lm(y~poly(x,2,raw=TRUE))}
   if (method==4){
     fits<-lm(y~log(x))}
+  if (method==5){
+    fits<-lm(y~I(1/x))}
   return(fits)}
 
 #########predicfunctions#######
@@ -118,7 +121,7 @@ fitlock<-function(lockdf,mzlist,inputfun){
   while(R.single<0.8&&kk<3){##do not delete too many points
     kk<-kk+1
     fitlistall<-list()
-    for (k in 1:4){
+    for (k in 1:5){
       results<-CalFun(k,table.single[,1],table.single[,2])
       fitlistall[[k]]<-results
     }
