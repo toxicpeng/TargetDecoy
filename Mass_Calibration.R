@@ -1,7 +1,9 @@
+######### Head #########
 
-###parameters#####
+###Reset all variables and clear all objects from R memory###
 rm(list=ls())
-####################for drinking water, cpp funtion, the oxygen number could be 1.2*carbon+3, cutoff e5, S/N>5, change is.BrCl
+
+###Load packages for code to run. Only need to run at the start of your R session.###
 library(xcms)
 library(MassSpecWavelet)
 library(Rcpp)
@@ -10,15 +12,21 @@ library(isopat)
 library(gtools)
 library(caTools)
 data(iso_list)
-rootdir<-getwd()##If you opened the current file via the R project, the following directory assignments will be correct
+
+###Set file pathways. If you are not currently in your root directory or have differently named folders, you will get an error###
+###You can use setwd() to change the current directory to the root.###
+###If your folder structure is different, you can change the folder names here.###
+rootdir<-getwd()
 path<-rootdir
 path.data<-paste(path,"/data", sep="")
 path.dust<-paste(path,"/dust analysis", sep="")
 path.prod<-paste(path,"/products analysis", sep="")
 path.out<-paste(path,"/refCal", sep="")
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
-path.lockdata<-paste(path,"/Product", sep="")
+path.lockdata<-paste(path.data,"/20190426", sep="")
 
+###Load function files and set universal variables.###
+###If you make changes to function files, you will need to run this section again###
 setwd(path)
 source("Nontargeted_fun.r")
 polarity<--1##if neg -1, if pos 1
@@ -27,6 +35,7 @@ electron<-0.0005485799
 ppm<-2
 ppm.ms2<-3##ms2 spectra accuracy
 
+###Pre-load mzXML raw data into a list. This saves time when running other functions which require multiple xcmsRaw objects.###
 xrawdata<-NULL
 xrawdata<-list()
 setwd(path.lockdata)
@@ -37,24 +46,25 @@ for (i in 1:length(msfiles)){
   xrawdata[i]<-xdata
 }
 
-##########identify lockmass#############
-#setwd(path.lockdata)
-#mzwin<-5###2.5ppm for mz cutoff
-#timewin<-0.5###30 sec for rt cutoff
-#timewin2<-2####60 sec for rt cutoff, since library was established for a long time
-#xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,nSlaves=1,polarity="negative")##peak width, the min and max range of chromatographic peaks in seconds
-#result<-findlock(xrawdata,xset,2000,0.002)##list of xcmsRaw objects, xcmsSet object, intensity threshold, mzstep
-#setwd(path.prod)
-#write.table(result, file="lockmassProd2000_neg300_500_noblanks2.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
-##Reference Note: This function found 802 masses when run on the 100_300_Neg sample set (no blanks)
+######### Body #########
 
-#################plot LockMass######################
+######Lockmass Code######
+
+###Identify lockmasses in raw data and create a csv file###
+setwd(path.lockdata)
+xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,polarity="negative")##data files,peak detection algorithm,mass error,peak width (min and max width in seconds),signal/noise threshold,polarity) 
+result<-findlock(xrawdata,xset,2000,0.001)##list of xcmsRaw objects, xcmsSet object, intensity threshold, mzstep. See Nontargeted_fun.R for "findlock" code.
+setwd(path.prod)
+write.table(result, file="lockmassProd_mz300to500_lenientsearch.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
+#Reference Note: This function found 802 masses when run on the 100_300_Neg sample set (no blanks)
+
+###Plot lockmasses###
 setwd(path.lockdata)
 msfiles<-list.files()
 msfiles<-msfiles[1:96]
 testMass<-255.2324
 polarity<--1##if neg -1, if pos 1
-LockMass.POS<-c(81.070425,93.070425,105.070425,139.11229,151.042199,171.138505,413.26696,445.120583)##Lock Mass for positive
+LockMass.POS<-c(81.070425,93.070425,105.070425,139.11229,151.042199,171.138505,413.26696,445.120583)##Lock Mass for positive ion mode
 setwd(path.prod)
 LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
@@ -92,7 +102,7 @@ plot(LockMass.cal,lock.shift)
 setwd(path.prod)
 LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
-path.caldata<-paste(path,"/caldata",sep="")
+path.caldata<-paste(path,"/caldata_July18_singlepluslinear",sep="")
 
 setwd(path.lockdata)
 for (i in 1:length(msfiles)){
