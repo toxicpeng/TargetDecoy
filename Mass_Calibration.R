@@ -21,12 +21,13 @@ path<-rootdir
 path.data<-paste(path,"/data", sep="")
 path.dust<-paste(path,"/dust analysis", sep="")
 path.prod<-paste(path,"/products analysis", sep="")
+path.jeans<-paste(path, "/jeans analysis", sep="")
 path.out<-paste(path,"/refCal", sep="")
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
-path.lockdata<-paste(path.data,"/20190426", sep="")
+path.lockdata<-paste(path.data,"/20190614", sep="")
 
 ###Load function files and set universal variables.###
-###If you make changes to function files, you will need to run this section again###
+###If you make changes to function files, you will need to run these 2 lines again###
 setwd(path)
 source("Nontargeted_fun.r")
 polarity<--1##if neg -1, if pos 1
@@ -45,17 +46,17 @@ for (i in 1:length(msfiles)){
   xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
   xrawdata[i]<-xdata
 }
-
+#for Jeans samples, NEG=xrawdata[1:9], POS=xrawdata[10:20]
 ######### Body #########
 
 ######Lockmass Code######
 
 ###Identify lockmasses in raw data and create a csv file###
 setwd(path.lockdata)
-xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,polarity="negative")##data files,peak detection algorithm,mass error,peak width (min and max width in seconds),signal/noise threshold,polarity) 
-result<-findlock(xrawdata,xset,2000,0.001)##list of xcmsRaw objects, xcmsSet object, intensity threshold, mzstep. See Nontargeted_fun.R for "findlock" code.
-setwd(path.prod)
-write.table(result, file="lockmassProd_mz300to500_lenientsearch.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
+xset<-xcmsSet(msfiles[1:9],method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,polarity="negative")##data files,peak detection algorithm,mass error,peak width (min and max width in seconds),signal/noise threshold,polarity) 
+result<-findlock(xrawdata[1:9],xset,2000,0.001)##list of xcmsRaw objects, xcmsSet object, intensity threshold, mzstep. See Nontargeted_fun.R for "findlock" code.
+setwd(path.jeans)
+write.table(result, file="lockmassjeansNEG.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
 #Reference Note: This function found 802 masses when run on the 100_300_Neg sample set (no blanks)
 
 ###Plot lockmasses###
@@ -102,7 +103,7 @@ plot(LockMass.cal,lock.shift)
 setwd(path.prod)
 LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
-path.caldata<-paste(path,"/caldata_July18_singlepluslinear",sep="")
+path.caldata<-paste(path,"/caldata_July22_Jeans",sep="")
 
 setwd(path.lockdata)
 for (i in 1:length(msfiles)){

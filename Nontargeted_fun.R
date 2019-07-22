@@ -29,7 +29,7 @@ findlock<-function(xrawAll,xset.input,intthresh,stepmz){
   for (k in 1:length(unlist(phenoData(xset.input)))){
     #xraw<-xcmsRaw(msfile[k])  Old code, kept just in case
     xraw<-xrawAll[[k]]
-    for (mz.value in seq(from=300,to=500,by=stepmz)){
+    for (mz.value in seq(from=min(xraw@mzrange),to=max(xraw@mzrange),by=stepmz)){
       mz.min<-mz.value-0.0005 
       mz.min<-max(mz.min, xraw@mzrange[1])
       mz.max<-mz.value+0.0005
@@ -37,10 +37,6 @@ findlock<-function(xrawAll,xset.input,intthresh,stepmz){
       rt.min<-(min(xraw@scantime)-60) #range of analysis is the entire chromatograph
       rt.max<-(max(xraw@scantime)-60) #the first and last 1 minute are skipped to avoid sections with no analytes
       peaks<-rawEIC(xraw,mzrange=cbind(mz.min,mz.max),rtrange=cbind(rt.min, rt.max))
-      if(mz.value==300 || mz.value==400){
-        print(c("current mass=",mz.value,"sample=",k,"results so far=",p))
-      }
-      
       peaklist<-unlist(peaks$intensity)
       newlist<-NULL
       for(i in 1:length(peaklist)){
@@ -55,7 +51,7 @@ findlock<-function(xrawAll,xset.input,intthresh,stepmz){
       if (minintensity>intthresh){
         newpeak<-rbind(newpeak,c(mz.value,minintensity,k))
         p<-p+1
-        #print(c("running...",p,"sample =",k))
+        print(c("running...",p,"sample =",k))
       }
     }
   }
@@ -159,7 +155,7 @@ if (nrow(table.single)>8&&R.single>0.9){
     if (length(index)>0){
       masserror<-PredictFun(fit.single,mzlist[index])
       calmass1<-mzlist[index]*(1-masserror)}
-    index2<-which(mzlist>=max(table[,1]))
+    index2<-which(mzlist>=max(table[,1]) & mzlist<=500)
 #    masserror2<-PredictFun(fit.single,269.1389)###predict at 269.1389 <<<<<<<<<<<<<<<<<<<<<<<<<<This was the breakpoint between polynomial and linear fitting.  Change this value to automatic detection.
     masserror2<-(mzlist[index2]*6.778e-09)+(-3.389e-06)
     if (length(index2)>0){
