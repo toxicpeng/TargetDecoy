@@ -39,7 +39,7 @@ ppm.ms2<-3##ms2 spectra accuracy
 xrawdata<-NULL
 xrawdata<-list()
 setwd(path.lockdata)
-msfiles<-list.files()
+msfiles<-list.files(pattern="\\.mzXML$", ignore.case=TRUE)
 msfiles<-msfiles[1:5]
 for (i in 1:length(msfiles)){
   xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)

@@ -62,7 +62,6 @@ xtest<-xcmsRaw(msfiles[1])
 mzrange<-xtest@mzrange
 ####delete those peaks with extreme m/z values, if this step is not done, some issues may happen during getEIC step#######
 xset<-xset.raw
-index<-which(xset.raw@peaks[,1]<mzrange[1]+1)
 if (length(index)>0){
   xset@peaks<-xset.raw@peaks[-index,]}
 index<-which(xset@peaks[,1]>mzrange[2]-1)
