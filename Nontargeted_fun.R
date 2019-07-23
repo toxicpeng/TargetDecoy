@@ -165,7 +165,9 @@ if (nrow(table.single)>8&&R.single>0.9){
       masserror3<-PredictFun(fit.single,mzlist[index3])
       calmass3<-mzlist[index3]*(1-masserror3)
     }
-    calmass<-c(calmass3,calmass1,calmass2)
+    index4<-which(mzlist>500)
+    calmass4<-mzlist[index4]
+    calmass<-c(calmass3,calmass1,calmass2,calmass4)
   return(list(calmass,savefun))}
 
 
