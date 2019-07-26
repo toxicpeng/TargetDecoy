@@ -19,13 +19,26 @@ library(caTools)
 library(seqinr)
 library(rcdk)
 data(iso_list)
-path<-getwd()##If you opened the current file via the R project, the following directory assignments will be correct
-path.data<-paste(path,"/data", sep="")
-path.out<-paste(path,"/refCal", sep="")
+rootdir<-getwd()
+path<-rootdir  ##If you opened the current file via the R project, the following directory assignments will be correct
+path.data<-paste(path,"/data", sep="")#raw data
+path.out<-paste(path,"/refCal", sep="")#calibrated data
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
 path.sirius<-paste(path,"/Sirius", sep="")
 path.siriusresult<-paste(path,"/Sirius/results", sep="")
-path.calms2<-paste(path,"/400_500", sep="")
+path.calms2<-path.jeansdata
+
+path.data<-paste(path,"/data", sep="")
+path.dust<-paste(path,"/dust analysis", sep="")
+path.lock<-paste(path,"/products analysis/lockmass", sep="")
+path.prodref<-paste(path, "/products analysis/reference compounds analysis", sep="")
+path.out<-paste(path,"/refCal", sep="")
+path.db<-paste(path,"/SMILES_DATABASE", sep="")
+path.proddata<-paste(path.data,"/20190426", sep="")
+path.jeansdata<-paste(path.data,"/20190614",sep="")
+path.jeanscaldata<-paste(path, "/caldata/20190614 jeans", sep="")
+
+setwd(path)
 source("Nontargeted_fun.r")
 polarity<--1##if neg -1, if pos 1
 adducts.input<-c('[M]-','[M-H]-','[M-Br+O]-','[M-H-H2O]-','[M+Cl]-','[M+CH2O2-H]-')
@@ -51,13 +64,13 @@ if (polarity==1){
 }
 
 #----------------------------------------------
-#detect peaks from mass spec raw files
+#detect peaks from mass spec raw (Calibrated?) files<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #---------------------------------------------
-setwd(path)
-Library<-read.table("dustlibrary.csv",header=TRUE,sep=',')###the library of peaks
-setwd(path.out)
+setwd(path.jeanscaldata)
+#Library<-read.table("dustlibrary.csv",header=TRUE,sep=',')###the library of peaks
+#setwd(path.out)
 msfiles<-list.files()
-xset.raw<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(10,30),snthresh=10,nSlaves=1)##peak width, the min and max range of chromatographic peaks in seconds
+xset.raw<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=3)##peak width, the min and max range of chromatographic peaks in seconds
 xtest<-xcmsRaw(msfiles[1])
 mzrange<-xtest@mzrange
 ####delete those peaks with extreme m/z values, if this step is not done, some issues may happen during getEIC step#######
@@ -79,7 +92,7 @@ xset1<-group(xset,bw=60,minsamp=1,minfrac=1/length(msfiles),mzwid=0.001)
 #xset2<-group(xset2,bw=30,minsamp=1,minfrac=1/length(msfiles),mzwid=0.001)###re-group using
 xset2<-xset1 
 ######################
-setwd(path.out)
+setwd(path.jeanscaldata)
 xset3<-fillpeak(xset2,10,20)
 test<-unlist(xset3@groupidx)##peak ID for each group
 #peak_target<-which(test>=min(range_target)&&test<=max(range_target2))
@@ -119,7 +132,7 @@ library(ChemmineR)
 library(ChemmineOB)
 library(RSQLite)
 mydb<-dbConnect(RSQLite::SQLite(),'TSCADB_all.db')
-Database<-dbReadTable(mydb,"all.TSCA")
+Database<-dbReadTable(mydb,"TSCA")
 
 ##prepare Decoy Database by replacing all oxygen with sulfur
 Decoydb<-Database
@@ -137,7 +150,7 @@ for (i in 1:nrow(Database)){
 
 
 ############revaluate the exact mass and retention time using raw file#############
-setwd(path.out)
+setwd(path.jeanscaldata)
 msfiles<-list.files()
 Library.new<-mzSmooth(Library,msfiles,120,10)
 index<-which(is.na(Library.new$mz))
@@ -146,15 +159,14 @@ Library.new<-Library.new[-index,]}
 
 
 ###########add fragmentation#################
-setwd(path)
+setwd(path.jeansdata)###msn data can not be stored by write.mzdata, so we need to get raw files
 Library<-Library.new
-setwd(path.data)###msn data can not be stored by write.mzdata, so we need to get raw files
 msfiles<-list.files()
 #################get the fragments by correlation in DIA window####
-FragList<-GetFrag(Library,path.data,msfiles,10^(-5),LockMass)
+FragList<-GetFrag(Library,path.jeansdata,msfiles,10^(-5),LockMass)
 
 #############double check the results across samples######
-Check.Frag<-CheckFrag(FragList,path.data,msfiles,10^(-5),45)
+Check.Frag<-CheckFrag(FragList,path.jeansdata,msfiles,10^(-5),45)
 
 #############remove isotopic peaks of fragments#########
 primary.ID<-unique(Check.Frag$libraryid)
@@ -176,12 +188,13 @@ for (i in 1:length(primary.ID)){
 Check.Frag<-DelList(Check.Frag,index.save)###delete those isotopic fragments
 
 #############mass calibration of fragments##############
-setwd(path.calms2)###the datasets for MS1 calibration establishment
+setwd(path.calms2)###the datasets for MS1 calibration establishment<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 msfiles<-list.files()
+msfiles<-msfiles[3:11]
 Cal.Frag<-FragCal(Check.Frag,path.calms2,msfiles,LockMass)
 
 ############mass calibration of MS1#############
-setwd(path.out)
+setwd(path.jeanscaldata)
 msfiles<-list.files()
 Library.new<-mzSmooth(Library,msfiles,120,10)
 index<-which(is.na(Library.new$mz))
@@ -191,8 +204,8 @@ if (length(index)>0){
 
 
 ###############find isotope#########################################
-Isotope.Data<-IsotopeFind(Library.new,path.out,10^(-5))###Identify Isotope Peaks
-IsotopeData<-IsotopeAcross(path.out,msfiles,Isotope.Data,10^(-5),30)#####remove noises based on correlations across samples
+Isotope.Data<-IsotopeFind(Library.new,path.jeanscaldata,10^(-5))###Identify Isotope Peaks
+IsotopeData<-IsotopeAcross(path.jeanscaldata,msfiles,Isotope.Data,10^(-5),30)#####remove noises based on correlations across samples
 
 #############use the primary carbon isotope##########################
 primary.ID<-unique(IsotopeData$ID)
@@ -229,7 +242,7 @@ if (polarity==1){
 if (polarity==-1){
   Adducts<-c('[M]-','[M-H]-','[M-Br+O]-','[M-H-H2O]-','[M+Cl]-','[M+CH2O2-H]-')
   MW.adducts<-c(0,-1.007825,-62.92342,-19.01839,34.96885,44.99765)
-  Adducts.Find<-AdductsFind(Library.new,path.out,MW.adducts,2*10^(-6),Adducts)
+  Adducts.Find<-AdductsFind(Library.new,path.jeanscaldata,MW.adducts,2*10^(-6),Adducts)
 }
 
 #-----------------------------------------------
@@ -238,6 +251,7 @@ if (polarity==-1){
 cutoff<-5000
 mwoffset<-0
 mylib.Target<-DatabaseSearching(cutoff,polarity,Database,mwoffset)
+#<<<<<<<Do we need characteristic ion, ionmode, and neutral loss matches for SIRIUS?
 setwd(path)
 
 #------------------------------------------------
@@ -251,9 +265,9 @@ setwd(path)
 #-----------------------
 #prepare data for Sirius Searching
 #-----------------------
-setwd(path.data)
+setwd(path.jeansdata)
 msfiles<-list.files()
-xraw<-xcmsRaw(msfiles[1],includeMSn=TRUE)
+xraw<-xcmsRaw(msfiles[3],includeMSn=TRUE)
 precursor<-preclist(xraw)
 weightK<-c(1,1,1,0.8,0.6,1)#weight for MS1, ms2, ionmode, neutral, characteristic, and adducts, rt
 #build MS files
@@ -273,7 +287,7 @@ mylib.output2<-Finalscore(mylib.output,weightK,precursor)
 setwd(path)
 write.table(mylib.output2,file='Decoy_200.csv',sep=',',row.names = FALSE)
 
-setwd("C:/Rprogram/Target_Decoy/Sirius/results")
+setwd(path.siriusresult)
 MS2files<-list.files()
 mylib.output<-Import.MS2(mylib.Target,MS2files,Cal.Frag)
 mylib.output$rtscore<-rep(0,nrow(mylib.output))
@@ -300,7 +314,7 @@ Target.rt<-Score.RT(Target,Database,RT.coeff)
 Decoy.rt<-Score.RT(Decoy,Decoydb,RT.coeff)
 cutoff.rt<-Find.cut(Target.rt,Decoy.rt)#recalculate score cutoff
 output<-Output(Target.rt,cutoff.rt)
-write.table(output,file='FinalID_200.csv',sep=',',row.names = FALSE)
+write.table(output,file='FinalID_Jeans_100to300.csv',sep=',',row.names = FALSE)
 
 #--------------------------
 #unique ID

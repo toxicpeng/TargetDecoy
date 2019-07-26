@@ -1622,7 +1622,7 @@ FragCal<-function(Check.Frag,path,msfiles,LockMass){
       next}
     lock.shift$shift[j]<-mean(temp[index.temp])
   }
-  lock.shift<-lock.shift[-index.save,]##delete those lockmass not detected
+  if(length(index.save)>0){lock.shift<-lock.shift[-index.save,]}##delete those lockmass not detected
   lock.shift$shift<-lock.shift$shift*10^(-6)
   
   msnmzlist<-Check.Frag$mz[index]
@@ -2232,7 +2232,7 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset){#cutoff for inten
   Database$mz<-Database$mz+mwoffset
   IsotopeDB$mz<-IsotopeDB$mz+mwoffset
   
-  setwd(path.out)
+  setwd(path.jeanscaldata)
   msfiles<-list.files()
   mylib<-Library.new
   mylib$formula.pred<-rep(0,nrow(Library.new))
@@ -2295,8 +2295,9 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset){#cutoff for inten
   #ion mode
   #------------------------------------------------
   mylib.ionmode<-mylib.charac
+  if(length(mylib.charac)==0){mylib.ionmode<-mylib.neutral}
   mylib.ionmode$ionmodescore<-rep(0,nrow(mylib.ionmode))
-  for (i in 1:nrow(mylib.charac)){
+  for (i in 1:nrow(mylib.ionmode)){
     print(c('ionmode',i))
     smiles<-mylib.ionmode$SMILES[i]##SMILES
     if (smiles==0){next}##no library compound
@@ -2453,11 +2454,12 @@ Finalscore<-function(mylib,weightK,precursor){
     adductscore<-unlist(strsplit(mylib$adductscore[i],';'))
   }
   
-  if (mylib$chracaterscore[i]==0){#character score
+#  if (mylib$chracaterscore[i]==0){#character score
     chascore<-rep(0,length(formula))
-  }else{
-    chascore<-unlist(strsplit(mylib$chracaterscore[i],';'))
-  }
+
+#    }else{
+#    chascore<-unlist(strsplit(mylib$chracaterscore[i],';'))
+#  }
   
   if (mylib$neutralscore[i]==0){#character score
     neutralscore<-rep(0,length(formula))

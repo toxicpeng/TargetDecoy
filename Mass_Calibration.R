@@ -24,7 +24,8 @@ path.lock<-paste(path,"/products analysis/lockmass", sep="")
 path.prodref<-paste(path, "/products analysis/reference compounds analysis", sep="")
 path.out<-paste(path,"/refCal", sep="")
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
-path.lockdata<-paste(path.data,"/20190426", sep="")
+path.proddata<-paste(path.data,"/20190426", sep="")
+path.jeansdata<-paste(path.data,"/20190614",sep="")
 
 ###Load function files and set universal variables.###
 ###If you make changes to function files, you will need to run these 2 lines again###
@@ -39,7 +40,7 @@ ppm.ms2<-3##ms2 spectra accuracy
 ###Pre-load mzXML raw data into a list. This saves time when running other functions which require multiple xcmsRaw objects.###
 xrawdata<-NULL
 xrawdata<-list()
-setwd(path.lockdata)
+setwd(path.jeansdata)
 msfiles<-list.files(pattern="\\.mzXML$", ignore.case=TRUE)
 msfiles<-msfiles[96]
 for (i in 1:length(msfiles)){
@@ -52,7 +53,7 @@ for (i in 1:length(msfiles)){
 ######Lockmass Code######
 
 ###Identify lockmasses in raw data and create a csv file###
-setwd(path.lockdata)
+setwd(path.proddata)
 xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,polarity="negative")##data files,peak detection algorithm,mass error,peak width (min and max width in seconds),signal/noise threshold,polarity) 
 result<-findlock(xrawdata[10:20],xset,2000,0.001)##list of xcmsRaw objects, xcmsSet object, intensity threshold, mzstep. See Nontargeted_fun.R for "findlock" code.
 setwd(path.jeans)
@@ -60,13 +61,13 @@ write.table(result, file="lockmassjeansPOS.csv", sep = ',',row.names=FALSE,col.n
 #Reference Note: This function found 802 masses when run on the 100_300_Neg sample set (no blanks)
 
 ###Plot lockmasses###
-setwd(path.lockdata)
+setwd(path.jeansdata)
 msfiles<-list.files()
-msfiles<-msfiles[1:96]
+msfiles<-msfiles[3:10]
 testMass<-255.2324
 polarity<--1##if neg -1, if pos 1
 LockMass.POS<-c(81.070425,93.070425,105.070425,139.11229,151.042199,171.138505,413.26696,445.120583)##Lock Mass for positive ion mode
-setwd(path.prod)
+setwd(path.lock)
 LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
 if (polarity==1){
@@ -74,7 +75,7 @@ if (polarity==1){
 }else{
   LockMass<-LockMass.NEG
 }
-setwd(path.lockdata)
+setwd(path.jeansdata)
 xrawdata<-xcmsRaw(msfiles[1])
 ppmshift<-plotlock(xrawdata,LockMass,10)
 
@@ -103,10 +104,8 @@ plot(LockMass.cal,lock.shift)
 setwd(path.lock)
 LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
-path.rawsource<-paste(path, "/data/20190426", sep="")
-path.caldata<-paste(path,"/caldata/20190426 products",sep="")
+path.caldata<-paste(path,"/caldata/20190614 jeans",sep="")
 
-setwd(path.rawsource)
 for (i in 1:length(msfiles)){
   #xrawdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
   if (polarity==1){
@@ -121,23 +120,27 @@ for (i in 1:length(msfiles)){
 
 
 ##############Data extraction for quick peak searching##############
-path.rawsource<-paste(path, "/data/20190426", sep="")
-path.calsource<-paste(path, "/caldata/20190426 products/caldata_July18_singlepluslinear", sep="") #Change source folder as needed
-path.destination<-paste(path, "/products analysis/reference compounds analysis/uncalibrated peaks", sep="") #Change destination folder as needed
+path.rawsource<-paste(path, "/data/20190614", sep="")
+path.calsource<-paste(path, "/caldata/20190614 jeans", sep="") #Change source folder as needed
+path.destination<-paste(path, "/jeans analysis/reference compounds", sep="") #Change destination folder as needed
 
-setwd(path.calsource)#Change data set as required
+datatype<-"CAL" #Change data set as required
+
+if(datatype=="RAW"){setwd(path.rawsource)}
+if(datatype=="CAL"){setwd(path.calsource)}
 msfiles<-list.files()
-msfiles<-msfiles[6] #Change file as needed (should be a single file)
-#xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=3)##data files,peak detection algorithm,mass error,peak width (min and max width in seconds),signal/noise threshold,polarity) 
+msfiles<-msfiles[1] #Change file as needed (should be a single file)
+xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=3)##data files,peak detection algorithm,mass error,peak width (min and max width in seconds),signal/noise threshold,polarity) 
 xraw<-xcmsRaw(msfiles)
 #setwd(path.destination)
 #write.table(xset@peaks[,c(1,4,9)], file="raw xcmsRaw sample100test.csv", sep = ',',row.names=FALSE) #Change file name as needed
 RawFrame<-data.frame(mz=xraw@env$mz,intensity=xraw@env$intensity)
-#write.table(RawFrame, file="raw xcmsRaw sample99.csv", sep = ',',row.names=FALSE) #Change file name as needed
+#write.table(RawFrame, file="cal xcmsRaw July22 singlepluslinearto500 sample100.csv", sep = ',',row.names=FALSE) #Change file name as needed
 
 #####Scan through extracted xcmsRaw data frame to pick out best match based on highest intensity#####
 RawFrame<-RawFrame[order(RawFrame$mz),]
 
+if(datatype=="RAW"){
 setwd(path.prodref)
 refmz<-read.table("CPref.csv",header=TRUE,sep=',')
 refmz<-refmz$mz_e
@@ -155,6 +158,43 @@ for (i in 1:length(refmz)){
 }
 nomatch<-which(is.na(refmatch$mzref))
 refmatch<-refmatch[-nomatch,]
-write.table(refmatch, file="cal CP reference matches sample99_singlepluslinear.csv", sep = ',',row.names=FALSE)
+setwd(path.destination)
+write.table(refmatch, file="raw CP reference matches jeanssampleA.csv", sep = ',',row.names=FALSE)
+}
+
+if (datatype=="CAL"){
+setwd(path.prodref)
+refmz<-read.table("CPref.csv",header=TRUE,sep=',')
+refmz<-refmz$mz_e
+refmz<-sort(refmz)
+refmatch<-data.frame(matrix(data=NA,nrow=121,ncol=3))
+for (i in 1:length(refmz)){
+  if(refmz[i]<500){
+  linfitppm<-(refmz[i]*6.777697e-09)+(-3.3888485e-06)
+  shiftmass<-refmz[i]*(1-linfitppm)
+  minus3ppm<-shiftmass-(shiftmass*0.000003)
+  plus3ppm<-shiftmass+(shiftmass*0.000003)
+  indexfind<-which(RawFrame$mz>minus3ppm & RawFrame$mz<plus3ppm)
+  if(length(indexfind)==0){next}
+  ppmarray<-((RawFrame$mz[indexfind]-shiftmass)/shiftmass)*10^6
+  }else{
+  minus3ppm<-refmz[i]-(refmz[i]*0.000003)
+  plus3ppm<-refmz[i]+(refmz[i]*0.000003)
+  indexfind<-which(RawFrame$mz>minus3ppm & RawFrame$mz<plus3ppm)
+  if(length(indexfind)==0){next}
+  ppmarray<-((RawFrame$mz[indexfind]-refmz[i])/refmz[i])*10^6
+  }
+  if(length(ppmarray)==0){next}
+  lowshift<-which.min(abs(ppmarray))
+  mzmatch<-RawFrame$mz[indexfind[lowshift]]
+  refmatch[i,]<-rbind(c(refmz[i],mzmatch,ppmarray[lowshift]))
+}
+names(refmatch)[1:3]<-c("mzref","mzmatch","ppm")
+nomatch<-which(is.na(refmatch$mzref))
+refmatch<-refmatch[-nomatch,]
+setwd(path.destination)
+write.table(refmatch, file="cal CP reference matches jeanssampleA.csv", sep = ',',row.names=FALSE)
+}
+
 
 
