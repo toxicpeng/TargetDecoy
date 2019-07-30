@@ -27,9 +27,8 @@ findlock<-function(xrawAll,xset.input,intthresh,stepmz){
   p<-0
   msfile<-filepaths(xset.input)
   for (k in 1:length(unlist(phenoData(xset.input)))){
-    #xraw<-xcmsRaw(msfile[k])  Old code, kept just in case
     xraw<-xrawAll[[k]]
-    for (mz.value in seq(from=min(xraw@mzrange),to=max(xraw@mzrange),by=stepmz)){
+    for (mz.value in seq(from=min(xraw@mzrange),to=500,by=stepmz)){
       mz.min<-mz.value-0.0005 
       mz.min<-max(mz.min, xraw@mzrange[1])
       mz.max<-mz.value+0.0005
@@ -278,7 +277,7 @@ DecoyConstruct<-function(TargetDatabase,ImAdducts){
   return(Database)
 }
 
-##########DatabaseMatch###############################
+##########DatabaseMatch###############################<<<<<<<<<<<<<<<<<<<<<CURRENTLY NOT IN USE BY ANY FUNCTION OR CODE FILE
 DatabaseMatch<-function(Peaks,Database,ppm,msfiles){
   #######match the peak with exact mass########
   Database1<-as.matrix(Database[,4:ncol(Database)])
@@ -647,13 +646,13 @@ MassCal<-function(xraw,LockMass,input,ppminput){
   return(xraw)}
 
 #############function to smooth the mz across three data points############
-mzSmooth<-function(Library,msfiles,rtwin,ppmwin){
+mzSmooth<-function(Library,rtwin,ppmwin,xcallist){
   ppmwin<-ppmwin*10^(-6)
 Library.new<-Library
-for (i in 1:length(msfiles)){
+for (i in 1:length(xcallist)){
   index<-which(Library$SampleID==i)
   if (length(index)==0){next}
-  xrawdata<-xcmsRaw(msfiles[i])
+  xrawdata<-xcallist[[i]]
   for (j in 1:length(index)){
     temp.index<-index[j]
     mz<-Library$mz[temp.index]
@@ -703,7 +702,9 @@ for (i in 1:length(msfiles)){
     #######replace the mz and rt with newly smoothed results    
     Library.new$mz[temp.index]<-sum(mz.scan1,mz.scan2,mz.scan3)/3
     Library.new$rt[temp.index]<-xrawdata@scantime[scan.max]/60
-  }}
+    }
+  print(c("smoothed",i,"out of",length(xcallist)))
+  }
 return(Library.new)}
 
 
@@ -729,16 +730,13 @@ FindCarbon<-function(mz1,mz2,deltamz){##check if two masses are differentiated b
 }
 
 
-IsotopeFind<-function(Library.new,path.out,mz_tol){####delete the secondary isotopic peaks
-  setwd(path.out)
-  msfiles<-list.files()
+IsotopeFind<-function(Library.new,xcallist,mz_tol){####delete the secondary isotopic peaks
   mz_tol<-3*10^(-6)
   index.save<-NULL
   IDsave<-0
   List.Isotope<-NULL
-  for (i in 1:length(msfiles)){
-    print(c('MS file...',i))
-    xrawdata<-xcmsRaw(msfiles[i])
+  for (i in 1:length(xcallist)){
+    xrawdata<-xcallist[[i]]
     index<-which(Library.new$SampleID==i)
     if (length(index)<1){next}
     for (j in 1:length(index)){
@@ -794,19 +792,19 @@ IsotopeFind<-function(Library.new,path.out,mz_tol){####delete the secondary isot
           List.Isotope$intensity<-c(List.Isotope$intensity,max(native.peak))
           List.Isotope$ID<-c(List.Isotope$ID,temp)
         }###indicate primary isotopic peaks detected
-      }}}
+    }}
+    print(c('found isotopes in',i,"out of",length(xcallist)))
+    }
   return(List.Isotope)}
 
 ###############function to remove isotope noises###################
-IsotopeAcross<-function(path,msfiles,Isotope.Data,mz_tol,rtwin){
-  setwd(path)
-  if (length(msfiles)==1){return(Isotope.Data)}
+IsotopeAcross<-function(xcallist,Isotope.Data,mz_tol,rtwin){
+  if (length(xcallist)==1){return(Isotope.Data)}
   
-  iso.save<-matrix(rep(0,length(Isotope.Data$Isotope)*length(msfiles)),ncol=length(msfiles))
-  prec.save<-matrix(rep(0,length(Isotope.Data$mz)*length(msfiles)),ncol=length(msfiles))
-  for (i in 1:length(msfiles)){
-    print(c('checkisotope...',i))
-    xraw<-xcmsRaw(msfiles[i])
+  iso.save<-matrix(rep(0,length(Isotope.Data$Isotope)*length(xcallist)),ncol=length(xcallist))
+  prec.save<-matrix(rep(0,length(Isotope.Data$mz)*length(xcallist)),ncol=length(xcallist))
+  for (i in 1:length(xcallist)){
+    xraw<-xcallist[[i]]
     
     for (j in 1:length(Isotope.Data$mz)){
       mz.iso<-Isotope.Data$Isotope[j]###fragments
@@ -833,7 +831,9 @@ IsotopeAcross<-function(path,msfiles,Isotope.Data,mz_tol,rtwin){
       mzmax<-min(maxmz,mz.iso+mz.iso*mz_tol)
       iso.peak<-rawEIC(xraw,mzrange=cbind(mzmin,mzmax),rtrange=cbind(rtmin,rtmax))
       iso.save[j,i]<-iso.peak$intensity[scan.max]
-    }}
+    }
+    print(c('checked isotope noise in',i,"out of",length(xcallist)))
+    }
   
   
   #########correlations##################
@@ -861,15 +861,12 @@ IsotopeAcross<-function(path,msfiles,Isotope.Data,mz_tol,rtwin){
   }
 
 ##############################find adducts###################################
-AdductsFind<-function(Library.new,path.out,mw.adducts,mz_tol,Adducts){#find the adducts
-  setwd(path.out)
-  msfiles<-list.files()
+AdductsFind<-function(Library.new,xcallist,mw.adducts,mz_tol,Adducts){#find the adducts
   index.save<-NULL
   IDsave<-0
   List.Isotope<-NULL
-  for (i in 1:length(msfiles)){
-    print(c('MS file...',i))
-    xrawdata<-xcmsRaw(msfiles[i])
+  for (i in 1:length(xcallist)){
+    xrawdata<-xcallist[[i]]
     index<-which(Library.new$SampleID==i)
     if (length(index)<1){next}
     for (j in 1:length(index)){
@@ -930,7 +927,9 @@ AdductsFind<-function(Library.new,path.out,mw.adducts,mz_tol,Adducts){#find the 
           List.Isotope$ID<-c(List.Isotope$ID,temp)
           List.Isotope$Adducts<-c(List.Isotope$Adducts,as.character(save.iso$adducts[k]))
         }###indicate primary isotopic peaks detected
-      }}}
+      }}
+    print(c('found adducts in',i,"out of",length(xcallist)))
+    }
   return(List.Isotope)}
 
 
@@ -1510,25 +1509,23 @@ form.produce<-function(vector){
   return(formula.paste)}
 
 #########function to extract fragment from DIA window#######
-GetFrag<-function(Library,path,msfiles,mz_tol,LockMass){
+GetFrag<-function(Library,xrawlist,mz_tol,LockMass){
   fragments<-NULL
-  setwd(path)
-  for (k in 1:length(msfiles)){
-    print(c('getfragment...',k))
-    xraw<-xcmsRaw(msfiles[k],includeMSn=TRUE)
-    
-  index<-which(Library$SampleID==k)
-  if (length(index)==0){next}
-  precursor<-preclist(xraw)
-  len<-length(precursor)
-  for (j in 1:length(index)){
-  mz<-Library$mz[index[j]]
-  DIAwin<-which(abs(mz-precursor)<=2.5)
-  if (length(DIAwin)<1){next}
-  DIAwin<-precursor[DIAwin[1]]
-  ####get fragments from each window based correlation >0.85#####
-  fragments<-getfrag(xraw,fragments,index[j],mz_tol,Library,DIAwin,30)
-  }
+  for (k in 1:length(xrawlist)){
+    xraw<-xrawlist[[k]]
+    index<-which(Library$SampleID==k)
+    if (length(index)==0){next}
+    precursor<-preclist(xraw)
+    len<-length(precursor)
+    for (j in 1:length(index)){
+      mz<-Library$mz[index[j]]
+      DIAwin<-which(abs(mz-precursor)<=2.5)
+      if (length(DIAwin)<1){next}
+      DIAwin<-precursor[DIAwin[1]]
+      ####get fragments from each window based correlation >0.85#####
+      fragments<-getfrag(xraw,fragments,index[j],mz_tol,Library,DIAwin,30)
+    }
+    print(c('got fragments in',k,'out of',length(xrawlist)))
   }
   return(fragments)}
 
@@ -1599,17 +1596,15 @@ getfrag<-function(rawdata,prec_list,index2,mz_tol,Library,DIAmzwin,rtwindow){#ge
   return (prec_list)}
 
 ##############fragment calibration###############
-FragCal<-function(Check.Frag,path,msfiles,LockMass){
-  setwd(path)
+FragCal<-function(Check.Frag,xrawlist,LockMass){
   Save.Frag<-Check.Frag
   
   #########msn calibration using the average shift########
-  for (i in 1:length(msfiles)){
-    print(c('Calfragment...',i))
+  for (i in 1:length(xrawlist)){
     index<-which(Check.Frag$sampleid==i)
     if(length(index)<1){next}
     
-  xraw<-xcmsRaw(msfiles[i])
+  xraw<-xrawlist[[i]]
   ppmshift<-plotlock(xraw,LockMass,10)
   lock.shift<-data.frame(lockmass=LockMass,shift=rep(0,length(LockMass)))
   index.save<-NULL
@@ -1635,21 +1630,23 @@ FragCal<-function(Check.Frag,path,msfiles,LockMass){
   mzlist[,1]<-calmz
   mzlist<-mzlist[order(mzlist[,2],decreasing=FALSE),]##sort the m/z for prediction
   mzlist<-matrix(mzlist,ncol=2)
-  Save.Frag$mz[index]<-mzlist[,1]}
+  Save.Frag$mz[index]<-mzlist[,1]
+  print(c('calibrated fragments in',i,"out of",length(xrawlist)))
+  }
   return(Save.Frag)
   }
 
 
 #####################check fragments across samples, the correlation should be good among samples#############################
-CheckFrag<-function(Fragments,path,msfiles,mz_tol,rtwin){#get fragment spectra for each precursor ions
+CheckFrag<-function(Fragments,xrawlist,mz_tol,rtwin){#get fragment spectra for each precursor ions
   setwd(path)
-  if (length(msfiles)==1){return(Fragments)}
+  len<-length(xrawlist)
+  if (len==1){return(Fragments)}
   
-  frag.save<-matrix(rep(0,length(Fragments$mz)*length(msfiles)),ncol=length(msfiles))
-  prec.save<-matrix(rep(0,length(Fragments$mz)*length(msfiles)),ncol=length(msfiles))
-  for (i in 1:length(msfiles)){
-    print(c('checkfragment...',i))
-    xraw<-xcmsRaw(msfiles[i],includeMSn=TRUE)
+  frag.save<-matrix(rep(0,length(Fragments$mz)*len),ncol=len)
+  prec.save<-matrix(rep(0,length(Fragments$mz)*len),ncol=len)
+  for (i in 1:len){
+    xraw<-xrawlist[[i]]
     precursor<-preclist(xraw)
     
     for (j in 1:length(Fragments$mz)){
@@ -1683,7 +1680,9 @@ CheckFrag<-function(Fragments,path,msfiles,mz_tol,rtwin){#get fragment spectra f
         mzmax<-min(maxmz,mz.frag+mz.frag*mz_tol)
         frag.peak<-rawEIC(DIAdata,mzrange=cbind(mzmin,mzmax),rtrange=cbind(rtmin,rtmax))
         frag.save[j,i]<-frag.peak$intensity[scan.max[1]]
-    }}
+    }
+    print(c('checked fragments in',i,"out of",len))
+    }
         
   #########correlations##################
   saveid<-NULL
@@ -2112,9 +2111,9 @@ pattern.ionmode<-function(smiles,Ionmode,Ionsource,Adducts){
 #--------------------------------------------
 #function to fill peaks
 #--------------------------------------------
-fillpeak<-function(xset.input,ppm,btw){
+fillpeak<-function(xset.input,ppm,btw,xcallist){
   ppm<-ppm/10^6
-  idsave<-matrix(rep(0,length(xset.input@groupidx)*length(msfiles)*4),nrow=length(xset.input@groupidx)*length(msfiles),ncol=4)
+  idsave<-matrix(rep(0,length(xset.input@groupidx)*length(xcallist)*4),nrow=length(xset.input@groupidx)*length(xcallist),ncol=4)
   k<-1
   for (i in 1:length(xset.input@groupidx)){
     index<-unlist(xset.input@groupidx[i])
@@ -2141,7 +2140,7 @@ fillpeak<-function(xset.input,ppm,btw){
       print(c('filling peakID...',k,'of...',length(unlist(phenoData(xset.input)))))
       index<-which(idsave[,2]==k)
       if (length(index)==0){next}
-      xraw<-xcmsRaw(msfiles[k])
+      xraw<-xcallist[[k]]
       for (n in 1:length(index)){
         mz.value<-idsave[index[n],3]
         mzmin<-max(minmz,mz.value-mz.value*ppm)
@@ -2198,7 +2197,7 @@ Score.Adducts<-function(mylib,Adducts.Find){
 #-------------------------------------------------------------------
 #Database matching
 #------------------------------------------------------------------
-DatabaseSearching<-function(cutoff,polarity,Database,mwoffset){#cutoff for intensity
+DatabaseSearching<-function(cutoff,polarity,Database,mwoffset,xcallist){#cutoff for intensity
   element<-c("C","H","N","O","P","S","35Cl","37Cl","79Br","81Br","I")
   number_input<-t(rbind(c(1,0,0,1,0,0,0,0,0,0,0),c(50,80,10,10,0,0,2,1,7,3,0)))
   rownames(number_input)<-element
@@ -2213,7 +2212,6 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset){#cutoff for inten
   ######calcualte isotope pattern for halogenated compounds###
   IsotopeDB<-NULL####save isotopic mz to IsotopeDB
   for (i in 1:nrow(Database)){
-    print(c('isotope...',i))
     formula<-Database$formula[i]
     carbon.index<-grep('C',formula)##must contain carbon
     if (length(carbon.index)==0){next}
@@ -2227,13 +2225,14 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset){#cutoff for inten
     if (length(index)>1){
       IsotopeDB$mz<-c(IsotopeDB$mz,iso.pattern[index,1])
       IsotopeDB$ID<-c(IsotopeDB$ID,rep(i,length(index)))
-    }}
+    }
+    if(i%%1000==0){print(c('calculated isotopes for',i,"out of",nrow(Database)))}
+    }
   
   Database$mz<-Database$mz+mwoffset
   IsotopeDB$mz<-IsotopeDB$mz+mwoffset
   
-  setwd(path.jeanscaldata)
-  msfiles<-list.files()
+
   mylib<-Library.new
   mylib$formula.pred<-rep(0,nrow(Library.new))
   mylib$isoscore<-rep(0,nrow(Library.new))
@@ -2242,11 +2241,10 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset){#cutoff for inten
   mylib$SMILES<-rep(0,nrow(Library.new))
   mylib$DbID<-rep(0,nrow(Library.new))
   mylib$Adducts<-rep(0,nrow(Library.new))
-  for (i in 1:length(msfiles)){
-    print(c('msfiles...',i))
+  for (i in 1:length(xcallist)){
     index<-which(Library.new$SampleID==i)
     if (length(index)==0){next}
-    xrawdata<-xcmsRaw(msfiles[i])
+    xrawdata<-xcallist[[i]]
     for (j in 1:length(index)){
       formula<-NULL
       formula<-formcal(number_input,Library.new,index[j],iso_list,xrawdata,ppm,ppm.ms2,IsotopeData,Database,Cal.Frag,adducts.input,IsotopeDB,mwoffset)
@@ -2259,7 +2257,9 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset){#cutoff for inten
       mylib$SMILES[index[j]]<-paste(formula[,3],collapse=';')
       mylib$DbID[index[j]]<-paste(formula[,4],collapse=';')
       mylib$Adducts[index[j]]<-paste(formula[,2],collapse=';')
-    }}
+    }
+    print(c('calculated scores for',i,"out of",length(xcallist)))
+    }
   
   ##-------------------------------------------------
   #neutral loss,Anal. Chem. 2014, 10724
@@ -2298,7 +2298,6 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset){#cutoff for inten
   if(length(mylib.charac)==0){mylib.ionmode<-mylib.neutral}
   mylib.ionmode$ionmodescore<-rep(0,nrow(mylib.ionmode))
   for (i in 1:nrow(mylib.ionmode)){
-    print(c('ionmode',i))
     smiles<-mylib.ionmode$SMILES[i]##SMILES
     if (smiles==0){next}##no library compound
     smiles<-strsplit(smiles,';')
@@ -2312,6 +2311,7 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset){#cutoff for inten
       score.save[j]<-pattern.ionmode(smiles[j],polarity,Ionsource,adduct[j])/2##score
     }
     mylib.ionmode$ionmodescore[i]<-paste(score.save,collapse=';')
+    if(i%%100==0){print(c('scored ionmode in',i,"out of",nrow(mylib.ionmode)))}  
   }
 #-------------------------------
 #score adducts
@@ -2320,6 +2320,10 @@ myfinallib<-Score.Adducts(mylib.ionmode,Adducts.Find)##if the adduct is matched 
   
   return(myfinallib)
 }
+
+
+
+
 
 #--------------------------------
 #Write the mass to ms files for Sirius searching
@@ -2376,7 +2380,9 @@ Sirius.build<-function(mylib,Cal.Frag,Isotope.Data){
                    ionization=adduct[j],
                    collision=ms2peak,ms1peaks=ms1peak)
       write.ms(mydata, names(mydata), file.out = paste(c(i,'_',j,'.ms'),collapse=''))
-    }}}
+    }
+    if(i%%100==0){print(c("built",i,"out of",nrow(mylib)))}
+    }}
 
 #---------------------------------------
 #import Sirius data
@@ -2385,7 +2391,7 @@ Import.MS2<-function(mylib,MS2files,Cal.Frag){
   mylib$MS2score<-rep(0,nrow(mylib))
   ms2scoresave<-NULL
   for (i in 1:nrow(mylib)){
-    print(c(i,'of...',nrow(mylib)))
+
     index<-which(Cal.Frag$libraryid==i)
     if (length(index)==0){next}#no fragments
     formula<-mylib$formula.pred[i]
@@ -2432,7 +2438,9 @@ Import.MS2<-function(mylib,MS2files,Cal.Frag){
     treescore<-c(treescore,temp.tree)
     ms2scoresave<-c(ms2scoresave,temp.tree)
     }
-    mylib$MS2score[i]<-paste(c(treescore),collapse = ';')}
+    mylib$MS2score[i]<-paste(c(treescore),collapse = ';')
+    print(c("collated",i,'out of',nrow(mylib)))
+    }
   return(mylib)
 }
 
@@ -2652,7 +2660,8 @@ Score.RT<-function(Target,Database,RT.coeff){
     }
     Target$rtscore[i]<-paste(temp.score,collapse=';')
     Target$allscore0[i]<-paste(temp+temp.score,collapse=';')
-  }
+  print(c("generated RT score for",i,"out of",nrow(Target)))
+    }
   Target$allscore<-Target$allscore0
   return(Target)
 }
@@ -2736,7 +2745,7 @@ UniqueID<-function(mylib){
     smiles<-unlist(smiles)
     mylib$allscore0[i]<-score[ID[1]]
     mylib$SMILES[i]<-smiles[ID[1]]
-    print(i)
+    print(c("finished",i,"out of",nrow(mylib)))
   }
   return(mylib)
 }
