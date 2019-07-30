@@ -2,8 +2,11 @@
 #this script is used for Target-Decoy Search and untargeted chemical analysis
 ####Hui, 20190307; Steven, 20190729
 #--------------------------------------------------------]
-#Caldata is the calibrated mass of 400-500
-#only need the MS2 data from each window
+#Directions:
+  #Check that the folder assignments/file names in Steps 1 and 2 are correct.
+  #Run Steps 1 through 7
+  #Follow Step 8 in SIRIUS
+  #Run Steps 9 through 11
 #--------------------------------------------------------]
 
 ###Step 1: Run Once per Sample Set----------------------------------------------------------------------------------------
@@ -22,8 +25,8 @@ library(here)
 data(iso_list)
 
 ###File paths which will likely remain constant###
-path<-here()  ##If you opened the current file via the R project, the following directory assignments will be correct
-path.lock<-paste(path,"/analysis/products analysis/lockmass", sep="")
+path<-here()  ##You should update your folder structure so that the following assignments are correct
+path.lock<-paste(path,"/analysis/products analysis/lockmass", sep="") #This assignment can be changed if necessary
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
 path.siriusTarget<-paste(path,"/Sirius/Target", sep="")
 path.siriusTargetresults<-paste(path,"/Sirius/Target/results", sep="")
@@ -42,10 +45,13 @@ Intensitycut<-10^5###intensity cutoff to pick the peaks for matching
 ###File paths/names which must be changed with every sample set
 path.rawdata<-paste(path,"/data/20190614/Neg100300", sep="")#raw data
 path.caldata<-paste(path,"/caldata/20190614 jeans/Neg100300", sep="")#calibrated data
-path.finaloutput<-paste(path,"/jeansanalysis", sep="")#folder for ID csv files
-target.file<-"Target_Neg100300.csv" #output for Sirius Target matches with weighted scores
-decoy.file<-"Decoy_Neg100300.csv" #output for Sirius Decoy matches with weighted scores
-RT.ID.file<-"FinalID_Neg100300"
+path.finaloutput<-paste(path,"/jeans analysis/Neg100300_noRT", sep="")#folder for ID csv files
+
+target.file<-"Target_Neg100300_nort.csv" #output for Sirius Target matches with weighted scores
+decoy.file<-"Decoy_Neg100300_nort.csv" #output for Sirius Decoy matches with weighted scores
+RT.ID.file<-"FinalID_Neg100300_nort.csv" #output for Target matches with final scores (including RT prediction)
+uniqueresults.file<-'UniqueID_Neg100300_nort.csv' #output for final match list (duplicates removed)
+allresults.file<-'AllID_Neg100300_nort.csv' #output for all Library data
 
 polarity<--1 ##if neg -1, if pos 1
 
@@ -288,7 +294,10 @@ setwd(path.siriusDecoy)
 Sirius.build(mylib.Decoy,Cal.Frag,IsotopeData)
 
 ###Step 8: Import target/decoy results into SIRIUS 4 and run Formula Identification (NOT IN R)----------------------------------
-
+  #Batch Import ".ms" files
+  #Compute All
+  #Export Results to correct sub-folder (check assignment from step 2)
+    #Check off "export tree results"
 ###Step 9: Use exported SIRIUS csv files to generate statistical match scores---------------------------------------------------
 
 #------------------------------------]
@@ -322,14 +331,14 @@ cutoff<-Find.cut(Target,Decoy)
 #----------------------------------------]
 #final ID with rt
 #----------------------------------------]
-RT.coeff<-Predict.RT(Target,Database,cutoff)#rt coefficients and standard deviation
-if (RT.coeff[4]>0.85){##if correlation is not good use the old one
-  RT.coeff<-c(7.6826,0.4694,0.000446,0.85)
-}
-Target.rt<-Score.RT(Target,Database,RT.coeff)
-Decoy.rt<-Score.RT(Decoy,Decoydb,RT.coeff)
-cutoff.rt<-Find.cut(Target.rt,Decoy.rt)#recalculate score cutoff
-output<-Output(Target.rt,cutoff.rt)
+#RT.coeff<-Predict.RT(Target,Database,cutoff)#rt coefficients and standard deviation
+#if (RT.coeff[4]>0.85){##if correlation is not good use the old one
+#  RT.coeff<-c(7.6826,0.4694,0.000446,0.85)
+#}
+#Target.rt<-Score.RT(Target,Database,RT.coeff)
+#Decoy.rt<-Score.RT(Decoy,Decoydb,RT.coeff)
+#cutoff.rt<-Find.cut(Target.rt,Decoy.rt)#recalculate score cutoff
+output<-Output(Target,cutoff)
 setwd(path.finaloutput)
 write.table(output,file=RT.ID.file, sep=',',row.names = FALSE)
 
@@ -341,11 +350,8 @@ write.table(output,file=RT.ID.file, sep=',',row.names = FALSE)
 setwd(path.finaloutput)
 Allcpd<-read.table(RT.ID.file,header=TRUE,sep=',',fill=TRUE)
 Uniqueid<-UniqueID(Allcpd)
-write.table(Uniqueid,file='UniqueID.csv',sep=',',row.names = FALSE)
-write.table(mylib.Target,file='AllID.csv',sep=',',row.names = FALSE)
-
-
-
+write.table(Uniqueid,file=uniqueresults.file,sep=',',row.names = FALSE)
+write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
 
 
 ###Extra: List of all printed counters---------------------------------------------------------------------------------
@@ -364,21 +370,20 @@ write.table(mylib.Target,file='AllID.csv',sep=',',row.names = FALSE)
   #Step 7
     #Decoydb = "converted [i] out of [number of rows in the database]"
     #Database Searching (Target)
-      # = "calculated isotope pattern for [i] out of [number of rows in the target database]"
+      # = "calculated isotopes for [i] out of [number of rows in the target database]"
       # = "calculated scores for [i] out of [number of files]"
       # = "scored ionmode in [i] out of [number of rows in the library]"
     #Database Searching (Decoy)
-      # = "calculated isotope pattern for [i] out of [number of rows in the decoy database]"
+      # = "calculated isotopes for [i] out of [number of rows in the decoy database]"
       # = "calculated scores for [i] out of [number of files]"
       # = "scored ionmode in [i] out of [number of rows in the library]"
     #Sirius.build (Target) = "built [i] out of [number of rows in the library]"
     #Sirius.build (Decoy) = "built [i] out of [number of rows in the library]
 
-  #Step 9
-    #Import.MS2 (Decoy) = "collated [i] out of [number of rows in the library]"
-    #Import.MS2 (Target) = "collated [i] out of [number of rows in the library]"
-  #Step 10
-    #Score.RT (Target) = "generated RT score for [i] out of [number of rows in the library]"
+  #Step 10 (SKIPPED for now)
+    #Predict.RT = "current R^2 is [R coefficient]"
+    #Score.RT (Target) = "generated RT score for [i] out of [number of rows in the Target match file]"
+    #Score.RT (Decoy) = "generated RT score for [i] out of [number of rows in the Decoy match file]"
   #Step 11
     #UniqueID = "finished [i] out of [number of rows in the library]"
 

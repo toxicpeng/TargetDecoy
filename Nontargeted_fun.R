@@ -2137,7 +2137,7 @@ fillpeak<-function(xset.input,ppm,btw,xcallist){
   maxrt<-max(xset.input@peaks[,4])
   if (length(idsave)>0){
     for (k in 1:length(unlist(phenoData(xset.input)))){
-      print(c('filling peakID...',k,'of...',length(unlist(phenoData(xset.input)))))
+      #print(c('filling peakID...',k,'of...',length(unlist(phenoData(xset.input)))))
       index<-which(idsave[,2]==k)
       if (length(index)==0){next}
       xraw<-xcallist[[k]]
@@ -2439,7 +2439,7 @@ Import.MS2<-function(mylib,MS2files,Cal.Frag){
     ms2scoresave<-c(ms2scoresave,temp.tree)
     }
     mylib$MS2score[i]<-paste(c(treescore),collapse = ';')
-    print(c("collated",i,'out of',nrow(mylib)))
+    #if(i%%100==0){print(c("collated",i,'out of',nrow(mylib)))}
     }
   return(mylib)
 }
@@ -2615,7 +2615,7 @@ Predict.RT<-function(Target,Database,cutoff){
   R.coeff<-0
   kk<-0
   while(R.coeff<0.8&&kk<nrow(marker)*4/5){##could delete more than 2/3
-    print(R.coeff)
+    print(c("current R^2 is",R.coeff))
     kk<-kk+1
     results<-lm(RT~LogP+Tpsa,data=marker)
     S.single<-summary(results)
@@ -2660,7 +2660,7 @@ Score.RT<-function(Target,Database,RT.coeff){
     }
     Target$rtscore[i]<-paste(temp.score,collapse=';')
     Target$allscore0[i]<-paste(temp+temp.score,collapse=';')
-  print(c("generated RT score for",i,"out of",nrow(Target)))
+  if(i%%10==0){print(c("generated RT score for",i,"out of",nrow(Target)))}
     }
   Target$allscore<-Target$allscore0
   return(Target)
