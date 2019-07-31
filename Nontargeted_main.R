@@ -9,10 +9,19 @@
   #Run Steps 9 through 11
 #--------------------------------------------------------]
 
+#Note to self: All NTA run up to July 30 inclusive had the following "deleted" variables still present in .Rdata workspace as:
+    #ppm<-1.5e-05
+    #ppm.ms2<-3
+  #These variables have been reinitialized (and ppm correctly set to 2) within the DatabaseSearching function.
+
+#Note to self 2: The combine.mz function (line 1297) seems incredibly inefficient (3 sets of nested if/else statements).
+  #This is LOW priority, but the code here could probably be cleaned up a little.
+  #Also should probably evaluate the C++ function at line 937 at some point
+
+
 ###Step 1: Run Once per Sample Set----------------------------------------------------------------------------------------
 
 #######for drinking water, cpp funtion, the oxygen number could be 1.2*carbon+3, cutoff e5, S/N>5, change is.BrCl
-library(xcms)
 library(MassSpecWavelet)
 library(Rcpp)
 library(RcppArmadillo)
@@ -22,6 +31,7 @@ library(caTools)
 library(seqinr)
 library(rcdk)
 library(here)
+library(xcms)
 data(iso_list)
 
 ###File paths which will likely remain constant###
@@ -339,8 +349,8 @@ cutoff<-Find.cut(Target,Decoy)
 #Decoy.rt<-Score.RT(Decoy,Decoydb,RT.coeff)
 #cutoff.rt<-Find.cut(Target.rt,Decoy.rt)#recalculate score cutoff
 output<-Output(Target,cutoff)
-setwd(path.finaloutput)
-write.table(output,file=RT.ID.file, sep=',',row.names = FALSE)
+#setwd(path.finaloutput)
+#write.table(output,file=RT.ID.file, sep=',',row.names = FALSE)
 
 ###Step 11: Eliminate duplicates and give a final compound match for each mass---------------------------------------------------
 
@@ -348,8 +358,8 @@ write.table(output,file=RT.ID.file, sep=',',row.names = FALSE)
 #unique ID
 #-------------------------]
 setwd(path.finaloutput)
-Allcpd<-read.table(RT.ID.file,header=TRUE,sep=',',fill=TRUE)
-Uniqueid<-UniqueID(Allcpd)
+#Allcpd<-read.table(RT.ID.file,header=TRUE,sep=',',fill=TRUE)
+Uniqueid<-UniqueID(output)
 write.table(Uniqueid,file=uniqueresults.file,sep=',',row.names = FALSE)
 write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
 

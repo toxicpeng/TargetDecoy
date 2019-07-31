@@ -1001,7 +1001,8 @@ cppFunction(
 formpred<-function(mz,ppm,numberset,mz_list,number_list,mwoffset){
   numberset<-matrix(as.numeric(numberset[,1:2]),ncol=2,nrow=nrow(numberset))
   numberset[2,1]<-max(numberset[2,1],floor(numberset[1,1]*0.5-sum(numberset[7:11,2])))##the minimum number of bromine
-  formulae<-rep(0,nrow(numberset))
+  #formulae<-rep(0,nrow(numberset)) Not used???
+  mz_list<-mz_list$mass
   for.pred<-itercal(numberset,mz_list,ppm,mz,mwoffset)##mwoffset is for prediction of rare element for fragment
   if (length(for.pred)<2)
     for.pred<-NULL
@@ -1243,7 +1244,7 @@ form.comb<-function(formulainput){
   return(form.output)}
 
 ################funtion to calculate isotope distribution of proposed formulae########
-deiso.formula<-function(vector1,iso_list,index.input,Peakinfo,Isotope.Data){
+deiso.formula<-function(vector1,iso_list,index.input,Peakinfo,IsotopeList){
   mz_tol<-5*10^(-6)
   formula.cal<-form.comb(vector1[1:11])
   if (max(vector1)==0) {return(10)}
@@ -1255,11 +1256,11 @@ deiso.formula<-function(vector1,iso_list,index.input,Peakinfo,Isotope.Data){
   iso.pattern[,1]<-iso.pattern[,1]-0.0005485799*polarity+mwoffset##plus the decoy adducts
 
   
-  index<-which(Isotope.Data$ID==index.input)
+  index<-which(IsotopeList$ID==index.input)
   if(length(index)==0)(return(10))
   
-  iso.intensity<-Isotope.Data$intensity.iso[index]###isotopic peaks from real spectra
-  iso.mz<-Isotope.Data$Isotope[index]
+  iso.intensity<-IsotopeList$intensity.iso[index]###isotopic peaks from real spectra
+  iso.mz<-IsotopeList$Isotope[index]
   mz<-Peakinfo$mz[index.input]
   index<-which(abs(iso.pattern[,1]-mz)<mz_tol*mz)
   if (length(index)==0){return(10)}
@@ -1355,7 +1356,7 @@ density.form<-function(vector1){##vector1 is the number of element, C, H, O, N, 
 
 
 #################formula calculation based on exact mass, isotope distribution#################
-formcal<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.ms2,Isotope.Data,Database,Fragment,adducts,IsotopeDB,mwoffset){##number input is the limit of element composition number, isolist is the mw of element
+formcal<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.ms2,IsotopeList,Database,Fragment,adducts,IsotopeDB,mwoffset){##number input is the limit of element composition number, isolist is the mw of element
   #########restrict the element number
   mz<-Peakinfo$mz[index.input]
   
@@ -1409,7 +1410,7 @@ formcal<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.ms2
     form.offset<-sapply(Adducts.pred,DefineAdducts)
     formula.split<-formula.split+form.offset[1:11,]
     index.save<-NULL
-    for (kk in 1:ncol(formula.split)){#Check if the number of elment is lesser than -1
+    for (kk in 1:ncol(formula.split)){#Check if the number of element is less than -1
       if (min(formula.split[,kk])<0){
         index.save<-c(index.save,kk)
       }
@@ -1419,7 +1420,7 @@ formcal<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.ms2
     }
     formula.split<-matrix(formula.split,nrow=11)
     if (length(formula.split)==0){return(NULL)}
-    RMSE.iso1<-apply(formula.split,2,deiso.formula,iso_list,index.input,Peakinfo,Isotope.Data)
+    RMSE.iso1<-apply(formula.split,2,deiso.formula,iso_list,index.input,Peakinfo,IsotopeList)
   }
   if(RMSE.iso1[1]==0){return(NULL)}###error in isotope calculation because of rare element
   RMSE.iso<-exp((-0.5)*RMSE.iso1)
@@ -1428,7 +1429,7 @@ formcal<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.ms2
   MS1.score<-rep(0,length(mserror))
   index.small<-which(abs(mserror)<1)
   if (length(index.small)>0){MS1.score[index.small]<-1}##when smaller than 1ppm, no difference
-  index.big<-which(abs(mserror)>1)
+  index.big<-which(abs(mserror)>=1)
   if (length(index.big)>0){
     MS1.score[index.big]<-exp((-0.5)*(mserror[index.big]/0.5)^2)}##2ppm for delta
   
@@ -1454,7 +1455,7 @@ formcal<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.ms2
   score.temp<-0
     for (k in 1:length(fragments)){
     mz.frag<-Fragment$mz[fragments[k]]
-    mz.pred<-mz.frag+0.0005485799*polarity###the mz used for formula prediction, should consider electrons
+    mz.pred<-mz.frag-0.0005485799*polarity###the mz used for formula prediction, should consider electrons
     formula.frag<-formpred(mz.pred,ppm.ms2,numberset,mw.element[,3],number_list,mwoffset)##primary calculation
     if (max(formula.frag)==0){score.temp<-score.temp-1}else{
       score.temp<-score.temp+1
@@ -1470,10 +1471,15 @@ formcal<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.ms2
   rank1<-order(-all.score)
   index<-rank1[1:length(rank1)]
   if (length(index)>1){
-    formula.final<-cbind(formula.pred[index],Adducts.pred[index],SMILES.pred[index],DatabaseID[index],MS1.score[index],RMSE.iso[index],ms2score[index],all.score[index])}else{
-      formula.final<-c(formula.pred[index],Adducts.pred[index],SMILES.pred[index],DatabaseID[index],MS1.score[index],RMSE.iso[index],ms2score[index],all.score[index])}
+    formula.final<-cbind(formula.pred[index],Adducts.pred[index],SMILES.pred[index],DatabaseID[index],MS1.score[index],RMSE.iso[index],ms2score[index],all.score[index])
+    }else{
+      formula.final<-c(formula.pred[index],Adducts.pred[index],SMILES.pred[index],DatabaseID[index],MS1.score[index],RMSE.iso[index],ms2score[index],all.score[index])
+    }
   formula.final<-matrix(formula.final,ncol=8)
   return(formula.final)}###just output the best one
+
+
+
 
 ################parse the formulas##################################
 form.produce<-function(vector){
@@ -1882,7 +1888,9 @@ getformula<-function(smile){
 #define adducts
 #------------------------------
 DefineAdducts<-function(adducts){
-  element<-NULL
+  element<-NULL #The element vectors are defined as follows: (C,H,N,O,P,S,35Cl,37Cl,79Br,81Br,I,m/z)
+                #The numbers in the first 11 slots are the difference in the number of each atom for each adduct.
+                #The 12th number is the change in m/z
   if (adducts=='[M-H]-'){
     element<-c(0,-1,0,0,0,0,0,0,0,0,0,-1.007825)
   }
@@ -2231,7 +2239,8 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset,xcallist){#cutoff 
   
   Database$mz<-Database$mz+mwoffset
   IsotopeDB$mz<-IsotopeDB$mz+mwoffset
-  
+  ppm<-2
+  ppm.ms2<-3
 
   mylib<-Library.new
   mylib$formula.pred<-rep(0,nrow(Library.new))
@@ -2249,7 +2258,7 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset,xcallist){#cutoff 
       formula<-NULL
       formula<-formcal(number_input,Library.new,index[j],iso_list,xrawdata,ppm,ppm.ms2,IsotopeData,Database,Cal.Frag,adducts.input,IsotopeDB,mwoffset)
       if (length(formula)<2){next}
-      max.form<-nrow(formula)
+      #max.form<-nrow(formula) Not used???
       mylib$formula.pred[index[j]]<-paste(formula[,1],collapse=';')
       mylib$isoscore[index[j]]<-paste(formula[,6],collapse=';')
       mylib$mserror[index[j]]<-paste(formula[,5],collapse=';')
