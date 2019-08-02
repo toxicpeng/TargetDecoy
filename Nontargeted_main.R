@@ -19,6 +19,10 @@
   #This is LOW priority, but the code here could probably be cleaned up a little.
   #Also should probably evaluate the C++ function at line 937 at some point
 
+#Note to self 3: A possible reason for no positive matches in the 700-900 range is that block of code which
+  #deletes any masses from the list which fall outside the current range for MS2 peaks. 
+  #I don't remember which function that was in though...
+
 
 ###Step 1: Run Once per Sample Set----------------------------------------------------------------------------------------
 
