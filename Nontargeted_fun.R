@@ -1002,7 +1002,7 @@ formpred<-function(mz,ppm,numberset,mz_list,number_list,mwoffset){
   numberset<-matrix(as.numeric(numberset[,1:2]),ncol=2,nrow=nrow(numberset))
   numberset[2,1]<-max(numberset[2,1],floor(numberset[1,1]*0.5-sum(numberset[7:11,2])))##the minimum number of bromine
   #formulae<-rep(0,nrow(numberset)) Not used???
-  mz_list<-mz_list$mass
+  #mz_list<-mz_list$mass
   for.pred<-itercal(numberset,mz_list,ppm,mz,mwoffset)##mwoffset is for prediction of rare element for fragment
   if (length(for.pred)<2)
     for.pred<-NULL
@@ -1455,7 +1455,7 @@ formcal<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.ms2
   score.temp<-0
     for (k in 1:length(fragments)){
     mz.frag<-Fragment$mz[fragments[k]]
-    mz.pred<-mz.frag-0.0005485799*polarity###the mz used for formula prediction, should consider electrons
+    mz.pred<-mz.frag+0.0005485799*polarity###the mz used for formula prediction, should consider electrons
     formula.frag<-formpred(mz.pred,ppm.ms2,numberset,mw.element[,3],number_list,mwoffset)##primary calculation
     if (max(formula.frag)==0){score.temp<-score.temp-1}else{
       score.temp<-score.temp+1
@@ -2529,6 +2529,139 @@ Finalscore<-function(mylib,weightK,precursor){
   mylib$allscore[i]<-paste(c(temp.score),collapse=';')
   }
   
+#Rank results according to final score. Only use if Decoy database/cutoff is not being used.
+  
+  for (i in 1:nrow(mylib)){
+    score<-mylib$allscore[i]
+    temp<-strsplit(as.character(score),';')
+    temp<-as.numeric(unlist(temp))
+    index<-which(temp>cutoff)
+    if (length(index)==0){
+      index.del<-c(index.del,i)
+      next
+    }
+    index<-which.max(temp)#only output the maximal formula
+    formula<-strsplit(as.character(mylib$formula.pred[i]),';')
+    formula<-unlist(formula)
+    mylib$Final[i]<-paste(c(formula[index]),collapse = ';')
+  }
+
+#End of ranking code.
+  
+  index<-which(mylib$mz>min(precursor)-2.5)
+  index2<-which(mylib$mz[index]<max(precursor)+2.5)
+  mylib<-mylib[index[index2],]##only output the results with MS2 fragments
+  return(mylib)
+}
+
+#Alternate version of Finalscore function which sorts all matches according to rank for final output table
+#Should only be used in place of Decoy matching/cutoff score
+Finalscorerank<-function(mylib,weightK,precursor){ 
+  mylib$allscore<-rep(0,nrow(mylib))
+  for (i in 1:nrow(mylib)){
+    formula<-mylib$formula.pred[i]
+    if (formula[1]=='0'){next}
+    formula<-unlist(strsplit(formula,';'))
+    
+    MS1score<-unlist(strsplit(mylib$ms1score[i],';'))
+    
+    if (mylib$adductscore[i]==0){#adduct score
+      adductscore<-rep(0,length(formula))
+    }else{
+      adductscore<-unlist(strsplit(mylib$adductscore[i],';'))
+    }
+    
+    #  if (mylib$chracaterscore[i]==0){#character score
+    chascore<-rep(0,length(formula))
+    
+    #    }else{
+    #    chascore<-unlist(strsplit(mylib$chracaterscore[i],';'))
+    #  }
+    
+    if (mylib$neutralscore[i]==0){#character score
+      neutralscore<-rep(0,length(formula))
+    }else{
+      neutralscore<-unlist(strsplit(mylib$neutralscore[i],';'))
+      neutralscore<-neutralscore[-1]
+    }
+    
+    if (mylib$ionmodescore[i]==0){#character score
+      ionmodescore<-rep(0,length(formula))
+    }else{
+      ionmodescore<-unlist(strsplit(mylib$ionmodescore[i],';'))
+    }
+    
+    if (mylib$MS2score[i]==0){#character score
+      MS2score<-rep(0,length(formula))
+    }else{
+      MS2score<-unlist(strsplit(mylib$MS2score[i],';'))
+    }
+    
+    if (mylib$isoscore[i]==0){#isotope score
+      isoscore<-rep(0,length(formula))
+    }else{
+      isoscore<-unlist(strsplit(mylib$isoscore[i],';'))
+    }
+    
+    mserrorscore<-unlist(strsplit(mylib$mserror[i],';'))
+    smileslist<-unlist(strsplit(mylib$SMILES[i],';'))
+    dbidlist<-unlist(strsplit(mylib$DbID[i],';'))
+    adductslist<-unlist(strsplit(mylib$Adducts[i],';'))
+        
+    MS1score<-as.numeric(MS1score)
+    MS2score<-as.numeric(MS2score)
+    ionmodescore<-as.numeric(ionmodescore)
+    neutralscore<-as.numeric(neutralscore)
+    chascore<-as.numeric(chascore)
+    adductscore<-as.numeric(adductscore)
+    
+    temp.score<-MS1score*weightK[1]+MS2score*weightK[2]+ionmodescore*weightK[3]+
+      neutralscore*weightK[4]+chascore*weightK[5]+adductscore*weightK[6]
+    
+    ####ion mode score is -1, put all score to 0
+    index.ion<-which(ionmodescore<0)
+    if (length(index.ion)>0){
+      temp.score[index.ion]<-0
+    }
+    
+    ####isotope score is <0.8, put all score to 0
+    isoscore<-as.numeric(isoscore)
+    index.iso<-which(isoscore<(log(0.5)))
+    if (length(index.iso)>0){
+      temp.score[index.iso]<-0
+    }
+    
+    ordervector<-order(-temp.score)
+    
+    formula<-formula[ordervector]
+    isoscore<-isoscore[ordervector]
+    mserrorscore<-mserrorscore[ordervector]
+    MS1score<-MS1score[ordervector]
+    smileslist<-smileslist[ordervector]
+    dbidlist<-dbidlist[ordervector]
+    adductslist<-adductslist[ordervector]
+    neutralscore<-neutralscore[ordervector]
+    ionmodescore<-ionmodescore[ordervector]
+    adductscore<-adductscore[ordervector]
+    MS2score<-MS2score[ordervector]
+    temp.score<-temp.score[ordervector]
+    
+    mylib$formula.pred[i]<-paste(c(formula),collapse=';')
+    mylib$isoscore[i]<-paste(c(isoscore),collapse=';')
+    mylib$mserror[i]<-paste(c(mserrorscore),collapse=';')
+    mylib$ms1score[i]<-paste(c(MS1score),collapse=';')
+    mylib$SMILES[i]<-paste(c(smileslist),collapse=';')
+    mylib$DbID[i]<-paste(c(dbidlist),collapse=';')
+    mylib$Adducts[i]<-paste(c(adductslist),collapse=';')
+    mylib$neutralscore[i]<-paste(c(neutralscore),collapse=';')
+    mylib$ionmodescore[i]<-paste(c(ionmodescore),collapse=';')
+    mylib$adductscore[i]<-paste(c(adductscore),collapse=';')
+    mylib$MS2score[i]<-paste(c(MS2score),collapse=';')
+    mylib$allscore[i]<-paste(c(temp.score),collapse=';')
+    
+    
+  }
+
   index<-which(mylib$mz>min(precursor)-2.5)
   index2<-which(mylib$mz[index]<max(precursor)+2.5)
   mylib<-mylib[index[index2],]##only output the results with MS2 fragments
@@ -2744,6 +2877,7 @@ UniqueID<-function(mylib){
   } 
   
   mylib$SMILES<-as.character(mylib$SMILES)##defactor
+  mylib$allscore0<-mylib$allscore
   mylib$allscore0<-as.character(mylib$allscore0)
   for (i in 1:nrow(mylib)){
     score<-mylib$allscore0[i]

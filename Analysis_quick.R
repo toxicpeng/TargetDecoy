@@ -4,13 +4,14 @@
 rm(list=ls())
 
 ###Load packages for code to run. Only need to run at the start of your R session.###
-library(xcms)
 library(MassSpecWavelet)
 library(Rcpp)
 library(RcppArmadillo)
 library(isopat)
 library(gtools)
 library(caTools)
+library(here)
+library(xcms)
 data(iso_list)
 
 ###Set file pathways. If you are not currently in your root directory or have differently named folders, you will get an error###
@@ -130,5 +131,54 @@ if (datatype=="CAL"){
   write.table(refmatch, file="cal CP reference matches jeanssampleA.csv", sep = ',',row.names=FALSE)
 }
 
+
+##Import NTA Ranked Target csv file, delete all columns except mass, Smiles, and score
+##Put each match in its own cell, then delete any rows with a 0 or negative score
+
+path<-here() 
+path.analysis<-paste(path,"/jeans analysis/Neg700900_ranked", sep="")
+setwd(path.analysis)
+rankedtable<-read.csv("Target_Neg700900_ranked.csv",header=TRUE,sep=',',fill=TRUE, stringsAsFactors = FALSE)
+
+expandtable<-as.data.frame(matrix(data=0,nrow=2500,ncol=4))
+names(expandtable)<-c("mz","formula","SMILES","matchscore")
+p<-1
+for (i in 1:nrow(rankedtable)){
+  scoreset<-strsplit(as.character(rankedtable$allscore[i]),';')
+  scoreset<-as.numeric(unlist(scoreset))
+  formset<-strsplit(as.character(rankedtable$formula.pred[i]),';')
+  formset<-unlist(formset)
+  smileset<-strsplit(as.character(rankedtable$SMILES[i]),';')
+  smileset<-unlist(smileset)
+  mz<-rankedtable$mz[i]
+  
+  if(length(scoreset)==0){next}
+  if(length(scoreset)==1){
+    expandtable$matchscore[p]<-scoreset
+    expandtable$mz[p]<-mz
+    expandtable$formula[p]<-formset
+    expandtable$SMILES[p]<-smileset
+    p<-p+1
+    next
+  }
+  
+  for(j in 1:length(scoreset)){
+    expandtable$matchscore[p]<-scoreset[j]
+    expandtable$mz[p]<-mz
+    expandtable$formula[p]<-formset[j]
+    expandtable$SMILES[p]<-smileset[j]
+    p<-p+1
+  }
+}
+
+lowscoreindex<-NULL
+for(k in 1:nrow(expandtable)){
+  if(expandtable$matchscore[k]<=0){
+    lowscoreindex<-c(lowscoreindex,k)
+  }
+}
+
+expandtable<-expandtable[-lowscoreindex,]
+write.csv(expandtable,file="compoundmatches_700to900.csv",row.names = FALSE)
 
 

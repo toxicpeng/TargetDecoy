@@ -4,6 +4,7 @@
 #--------------------------------------------------------]
 #Directions:
   #Check that the folder assignments/file names in Steps 1 and 2 are correct.
+  #Delete/move any old SIRIUS files
   #Run Steps 1 through 7
   #Follow Step 8 in SIRIUS
   #Run Steps 9 through 11
@@ -53,15 +54,15 @@ Intensitycut<-10^5###intensity cutoff to pick the peaks for matching
 ###Step 2: Modify for each run as necessary:------------------------------------------------------------------------------------------
 
 ###File paths/names which must be changed with every sample set
-path.rawdata<-paste(path,"/data/20190614/Neg100300", sep="")#raw data
-path.caldata<-paste(path,"/caldata/20190614 jeans/Neg100300", sep="")#calibrated data
-path.finaloutput<-paste(path,"/jeans analysis/Neg100300_noRT", sep="")#folder for ID csv files
+path.rawdata<-paste(path,"/data/20190614/Neg700900", sep="")#raw data
+path.caldata<-paste(path,"/caldata/20190614 jeans/Neg700900", sep="")#calibrated data
+path.finaloutput<-paste(path,"/jeans analysis/Neg700900_ranked", sep="")#folder for ID csv files
 
-target.file<-"Target_Neg100300_nort.csv" #output for Sirius Target matches with weighted scores
-decoy.file<-"Decoy_Neg100300_nort.csv" #output for Sirius Decoy matches with weighted scores
-RT.ID.file<-"FinalID_Neg100300_nort.csv" #output for Target matches with final scores (including RT prediction)
-uniqueresults.file<-'UniqueID_Neg100300_nort.csv' #output for final match list (duplicates removed)
-allresults.file<-'AllID_Neg100300_nort.csv' #output for all Library data
+target.file<-"Target_Neg700900_ranked.csv" #output for Sirius Target matches with weighted scores
+#decoy.file<-"Decoy_Neg700900_nort.csv" #output for Sirius Decoy matches with weighted scores
+#RT.ID.file<-"FinalID_Neg700900_nort.csv" #output for Target matches with final scores (including RT prediction)
+#uniqueresults.file<-'UniqueID_Neg700900_nort.csv' #output for final match list (duplicates removed)
+#allresults.file<-'AllID_Neg700900_nort.csv' #output for all Library data
 
 polarity<--1 ##if neg -1, if pos 1
 
@@ -260,19 +261,19 @@ mydb<-dbConnect(RSQLite::SQLite(),'TSCADB_all.db')
 Database<-dbReadTable(mydb,"TSCA")
 
 ##prepare Decoy Database by replacing all oxygen with sulfur
-Decoydb<-Database
-for (i in 1:nrow(Database)){
-  formula<-Decoydb$formula[i]
-  Decoydb$formula[i]<-gsub('O','S',formula)
-  
-  Smile<-Decoydb$smiles[i]
-  Decoydb$smiles[i]<-gsub('O','S',Smile)
-  
-  Smile<-grep('O',unlist(strsplit(Smile,'')))
-  mz<-Decoydb$mz[i]+length(Smile)*15.97716##plus the mz of sulfur
-  Decoydb$mz[i]<-mz
-  if(i%%1000==0){print(c("converted",i,"out of",nrow(Database)))}
-}
+#Decoydb<-Database
+#for (i in 1:nrow(Database)){
+#  formula<-Decoydb$formula[i]
+#  Decoydb$formula[i]<-gsub('O','S',formula)
+#  
+#  Smile<-Decoydb$smiles[i]
+#  Decoydb$smiles[i]<-gsub('O','S',Smile)
+#  
+#  Smile<-grep('O',unlist(strsplit(Smile,'')))
+#  mz<-Decoydb$mz[i]+length(Smile)*15.97716##plus the mz of sulfur
+#  Decoydb$mz[i]<-mz
+#  if(i%%1000==0){print(c("converted",i,"out of",nrow(Database)))}
+#}
 
 
 #-----------------------------------------------]
@@ -286,9 +287,9 @@ mylib.Target<-DatabaseSearching(cutoff,polarity,Database,mwoffset,xcaldata)
 #------------------------------------------------]
 #Decoy Results
 #------------------------------------------------]
-cutoff<-5000
-mwoffset<-0#Ar
-mylib.Decoy<-DatabaseSearching(cutoff,polarity,Decoydb,mwoffset,xcaldata)
+#cutoff<-5000
+#mwoffset<-0#Ar
+#mylib.Decoy<-DatabaseSearching(cutoff,polarity,Decoydb,mwoffset,xcaldata)
 
 
 #-----------------------]
@@ -300,12 +301,18 @@ weightK<-c(1,1,1,0.8,0.6,1)#weight for MS1, ms2, ionmode, neutral, characteristi
 #build MS files
 setwd(path.siriusTarget)
 Sirius.build(mylib.Target,Cal.Frag,IsotopeData)
-setwd(path.siriusDecoy)
-Sirius.build(mylib.Decoy,Cal.Frag,IsotopeData)
+#setwd(path.siriusDecoy)
+#Sirius.build(mylib.Decoy,Cal.Frag,IsotopeData)
 
 ###Step 8: Import target/decoy results into SIRIUS 4 and run Formula Identification (NOT IN R)----------------------------------
   #Batch Import ".ms" files
   #Compute All
+    #Add Fluorine (inf)
+    #Set "instrument" to Orbitrap (default settings)
+    #Turn on CSI:FingerID
+      #Search in TSCA or Decoy - Sulfur (based on dataset imported)
+      #Make sure the following adducts are selected (negative mode): 
+        #[M+Cl]-, [M-Br+O]-, [M-H]-, [M]-, [M-H2O-H]-, [M+CH2O2-H]-
   #Export Results to correct sub-folder (check assignment from step 2)
     #Check off "export tree results"
 ###Step 9: Use exported SIRIUS csv files to generate statistical match scores---------------------------------------------------
@@ -313,34 +320,36 @@ Sirius.build(mylib.Decoy,Cal.Frag,IsotopeData)
 #------------------------------------]
 #import MS2 data
 #------------------------------------]
-setwd(path.siriusDecoyresults)
-MS2files<-list.files()
-mylib.output<-Import.MS2(mylib.Decoy,MS2files,Cal.Frag)
-mylib.output$rtscore<-rep(0,nrow(mylib.output))
-mylib.output2<-Finalscore(mylib.output,weightK,precursor)
-setwd(path.finaloutput)
-write.table(mylib.output2,file=decoy.file,sep=',',row.names = FALSE)
+#setwd(path.siriusDecoyresults)
+#MS2files<-list.files()
+#mylib.output<-Import.MS2(mylib.Decoy,MS2files,Cal.Frag)
+#mylib.output$rtscore<-rep(0,nrow(mylib.output))
+#mylib.output2<-Finalscore(mylib.output,weightK,precursor)
+#setwd(path.finaloutput)
+#write.table(mylib.output2,file=decoy.file,sep=',',row.names = FALSE)
 
 setwd(path.siriusTargetresults)
 MS2files<-list.files()
 mylib.output<-Import.MS2(mylib.Target,MS2files,Cal.Frag)
-mylib.output$rtscore<-rep(0,nrow(mylib.output))
-mylib.output3<-Finalscore(mylib.output,weightK,precursor)
+#mylib.output$rtscore<-rep(0,nrow(mylib.output))
+#mylib.output3<-Finalscore(mylib.output,weightK,precursor)
+mylib.output3<-Finalscorerank(mylib.output,weightK,precursor)
 setwd(path.finaloutput)
 write.table(mylib.output3,file=target.file,sep=',',row.names = FALSE)
 
 #------------------------------------------]
 #initial ID without rt
 #------------------------------------------]
-Target<-mylib.output3
-Decoy<-mylib.output2
-cutoff<-Find.cut(Target,Decoy)
+#Target<-mylib.output3
+#Decoy<-mylib.output2
+#cutoff<-Find.cut(Target,Decoy)
 
 ###Step 10: Add predicted retention time scores to the compound ID files and apply score cutoff----------------------------------
 
 #----------------------------------------]
 #final ID with rt
 #----------------------------------------]
+
 #RT.coeff<-Predict.RT(Target,Database,cutoff)#rt coefficients and standard deviation
 #if (RT.coeff[4]>0.85){##if correlation is not good use the old one
 #  RT.coeff<-c(7.6826,0.4694,0.000446,0.85)
@@ -348,7 +357,7 @@ cutoff<-Find.cut(Target,Decoy)
 #Target.rt<-Score.RT(Target,Database,RT.coeff)
 #Decoy.rt<-Score.RT(Decoy,Decoydb,RT.coeff)
 #cutoff.rt<-Find.cut(Target.rt,Decoy.rt)#recalculate score cutoff
-output<-Output(Target,cutoff)
+#output<-Output(Target,cutoff)
 #setwd(path.finaloutput)
 #write.table(output,file=RT.ID.file, sep=',',row.names = FALSE)
 
@@ -357,11 +366,11 @@ output<-Output(Target,cutoff)
 #-------------------------]
 #unique ID
 #-------------------------]
-setwd(path.finaloutput)
+#setwd(path.finaloutput)
 #Allcpd<-read.table(RT.ID.file,header=TRUE,sep=',',fill=TRUE)
-Uniqueid<-UniqueID(output)
-write.table(Uniqueid,file=uniqueresults.file,sep=',',row.names = FALSE)
-write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
+#Uniqueid<-UniqueID(output)
+#write.table(Uniqueid,file=uniqueresults.file,sep=',',row.names = FALSE)
+#write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
 
 
 ###Extra: List of all printed counters---------------------------------------------------------------------------------
