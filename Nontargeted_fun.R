@@ -641,7 +641,7 @@ MassCal<-function(xraw,LockMass,input,ppminput){
       calmz<-output[[1]]
       temp.fun<-output[[2]]
       xraw@env$mz[correctindex]<-calmz}
-    print(i)
+    if(i%%100==0){print(i)}
     }
   return(xraw)}
 

@@ -41,7 +41,7 @@ data(iso_list)
 
 ###File paths which will likely remain constant###
 path<-here()  ##You should update your folder structure so that the following assignments are correct
-path.lock<-paste(path,"/analysis/products analysis/lockmass", sep="") #This assignment can be changed if necessary
+path.lock<-paste(path,"/analysis/dust analysis", sep="") #This assignment can be changed if necessary
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
 path.siriusTarget<-paste(path,"/Sirius/Target", sep="")
 path.siriusTargetresults<-paste(path,"/Sirius/Target/results", sep="")
@@ -50,6 +50,7 @@ path.siriusDecoyresults<-paste(path,"/Sirius/Decoy/results", sep="")
 ###Import function files
 setwd(path)
 source("Nontargeted_fun.r")
+source("Analysis_quick.r")
 
 adducts.input<-c('[M]-','[M-H]-','[M-Br+O]-','[M-H-H2O]-','[M+Cl]-','[M+CH2O2-H]-')
 Ionsource<-'ESI'
@@ -58,11 +59,11 @@ Intensitycut<-10^5###intensity cutoff to pick the peaks for matching
 ###Step 2: Modify for each run as necessary:------------------------------------------------------------------------------------------
 
 ###File paths/names which must be changed with every sample set
-path.rawdata<-paste(path,"/data/20190614/Neg700900", sep="")#raw data
-path.caldata<-paste(path,"/caldata/20190614 jeans/Neg700900", sep="")#calibrated data
-path.finaloutput<-paste(path,"/jeans analysis/Neg700900_ranked", sep="")#folder for ID csv files
+path.rawdata<-paste(path,"/data/housedust", sep="")#raw data
+path.caldata<-paste(path,"/caldata/housedust", sep="")#calibrated data
+path.finaloutput<-paste(path,"/analysis/dust analysis", sep="")#folder for ID csv files
 
-target.file<-"Target_Neg700900_ranked.csv" #output for Sirius Target matches with weighted scores
+target.file<-"Target_dust_formulanum.csv" #output for Sirius Target matches with weighted scores
 #decoy.file<-"Decoy_Neg700900_nort.csv" #output for Sirius Decoy matches with weighted scores
 #RT.ID.file<-"FinalID_Neg700900_nort.csv" #output for Target matches with final scores (including RT prediction)
 #uniqueresults.file<-'UniqueID_Neg700900_nort.csv' #output for final match list (duplicates removed)
@@ -74,7 +75,7 @@ polarity<--1 ##if neg -1, if pos 1
 
 if(polarity==-1){
   setwd(path.lock)
-  LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
+  LockMass.NEG<-read.table("lockmassdust.csv",header=TRUE,sep=',')
   LockMass<-LockMass.NEG$Lock
 }
 if(polarity==1){

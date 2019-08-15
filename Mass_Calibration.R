@@ -6,21 +6,21 @@ rm(list=ls())
 ###Step 1: Load packages and set root directory (only run at start of R session)---------------------------------------
 
 ###Load packages for code to run###
-library(xcms)
 library(MassSpecWavelet)
 library(Rcpp)
 library(RcppArmadillo)
 library(isopat)
 library(gtools)
 library(caTools)
+library(here)
+library(xcms)
 data(iso_list)
 
 ###Set file pathways. If you are not currently in your root directory or have differently named folders, you will get an error###
 ###You can use setwd() to change the current directory to the root.###
 ###If your folder structure is different, you can change the folder names here.###
-rootdir<-getwd()
-path<-rootdir
-path.lock<-paste(path,"/analysis/products analysis/lockmass", sep="")
+path<-here()
+path.lock<-paste(path,"/analysis/dust analysis", sep="")
 ###Load function files and set universal variables.###
 ###If you make changes to function files, you will need to run these 2 lines again###
 setwd(path)
@@ -30,8 +30,8 @@ polarity<--1##if neg -1, if pos 1
 
 ###Step 2: Change source (raw data) and target (calibrated data) folders-------------------------------------------------------
 
-path.source<-paste(path,"/data/20190614/Neg700900", sep="")
-path.destination<-paste(path,"/caldata/20190614 jeans/Neg700900", sep="")
+path.source<-paste(path,"/data/housedust", sep="")
+path.destination<-paste(path,"/caldata/housedust", sep="")
 
 ###Step 3: Pre-load raw data---------------------------------------------------------------------------------------------------
 
@@ -49,7 +49,7 @@ for (i in 1:length(msfiles)){
 
 ###Mass Calibration###
 setwd(path.lock)
-LockMass.NEG<-read.table("lockmassProd.csv",header=TRUE,sep=',')
+LockMass.NEG<-read.table("lockmassdust.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
 
 for (i in 1:length(msfiles)){
