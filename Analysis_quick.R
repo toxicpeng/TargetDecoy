@@ -412,3 +412,32 @@ newtable<-as.data.frame(newtable)
 names(newtable)<-c("mz10ppm","matches10ppm")
 write.csv(newtable, file="10ppmmatches.csv",row.names=FALSE)
 
+
+#####Code for determining the number of unique formula matches in the output from "DatabaseSearching" function#####
+path<-here()
+dustformpath<-paste(path,"/analysis/dust analysis/compound matching figure", sep="")
+setwd(dustformpath)
+table10ppm<-read.csv("housedustmatches_10ppm.csv",header=TRUE,sep=',',fill=TRUE, stringsAsFactors = FALSE)
+table5ppm<-read.csv("housedustmatches_5ppm.csv",header=TRUE,sep=',',fill=TRUE, stringsAsFactors = FALSE)
+table1ppm<-read.csv("housedustmatches_1ppm.csv",header=TRUE,sep=',',fill=TRUE, stringsAsFactors = FALSE)
+
+mytable<-table5ppm
+mytable<-mytable[,c(1,2,27,28,29,33,34)] #mz,rt,sampleID,formulas,totalformulas,SMILES,DbID
+myform<-mytable[,c(1,4,5)] #formulas, totalformulas
+myform$uniqueforms<-rep(0,nrow(myform))
+myform$totaluniqueforms<-rep(0,nrow(myform))
+for(i in 1:nrow(myform)){
+  if(myform[i,2]==0){next}
+  allforms<-strsplit(myform[i,2],split=";")
+  allforms<-as.vector(allforms[[1]])
+  uniqueforms<-unique(allforms)
+  uniquenum<-length(uniqueforms)
+  myform$uniqueforms[i]<-paste(uniqueforms,collapse=";")
+  myform$totaluniqueforms[i]<-uniquenum
+}
+write.csv(myform, file="5ppmformulas.csv",row.names=FALSE)
+
+indexz<-which(myform[,5]==0)
+myform2<-myform[-indexz,]
+write.csv(myform2, file="5ppmformulasnozero.csv",row.names=FALSE)
+
