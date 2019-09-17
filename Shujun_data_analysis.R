@@ -139,7 +139,7 @@ fillpeak<-function(xset.input,ppm,btw){
     tempvalue<-unlist(xset.input@groupidx[groupid])
     peakid<-peakid+1
     xset.input@groupidx[groupid]<-list(c(tempvalue,peakid))
-    if(i%%1000==0){print(c('finished row',i,"out of",nrow(newpeak)))}
+    if(i%%10000==0){print(c('finished row',i,"out of",nrow(newpeak)))}
     }
   peak.combine<-matrix(0,ncol=11,nrow=nrow(newpeak))
   peak.combine[,1]<-newpeak[,1]
