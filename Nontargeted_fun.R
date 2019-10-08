@@ -575,7 +575,8 @@ MassCal<-function(xraw,LockMass,input,ppminput){
     ###################calculate the mass shift for each lockmass####################
     massshift<-rep(0,length(Lockmass))
     for (k in 1:length(Lockmass)){##define the shift for each lock mass
-      mz.index<-which(abs(mzlist*(1-lock.shift*10^(-6))-Lockmass[k])<ppmid*Lockmass[k])
+      #mz.index<-which(abs(mzlist*(1-lock.shift*10^(-6))-Lockmass[k])<ppmid*Lockmass[k])  #Old Code
+      mz.index<-which(abs(mzlist-(1+lock.shift[k]*10^(-6))*Lockmass[k])<ppmid*Lockmass[k]) #New code, suggested by Hui 9/24/2019
       if (length(mz.index)==0){
         massshift[k]<-100
         next}

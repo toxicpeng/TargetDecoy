@@ -28,7 +28,7 @@ library(rcdk)
 library(here)
 library(xcms)
 data(iso_list)
-path_data<-'E:/Steven/Raw Data/Shujun Yi/20190821_xml'
+path_data<-'E:/Steven/Raw Data/Shujun Yi/20190417_xml'
 path_results<-'E:/Steven/Raw Data/Shujun Yi/results'
 path_negative<-'E:/Steven/Raw Data/Shujun Yi/negative'
 path_positive<-'E:/Steven/Raw Data/Shujun Yi/positive'
@@ -36,9 +36,9 @@ setwd(path_data)
 msfiles<-list.files()
 msfiles<-mixedsort(msfiles)###sort the file name according to number
 
-msfiles<-msfiles[22:29]
-allpeaks.filename<-"TC-3_neg.csv"
-interestpeaks.filename<-"TC-3_neg_cmpdsofinterest.csv"
+msfiles<-msfiles[21:24]
+allpeaks.filename<-"HPFESA_liver_10d.csv"
+interestpeaks.filename<-"TC-3_neg_cmpdsofinterest2.csv"
 
 ##########split files to negative and positive results according to signals######
 for (i in 1:length(msfiles)){
@@ -64,7 +64,8 @@ polarity<--1
 ppmshift<-0*10^(-6) 
 setwd(path_negative)
 msfiles<-list.files()
-msfiles<-mixedsort(msfiles)###sort the file name according to number 
+msfiles<-mixedsort(msfiles)
+msfiles<-msfiles[21:24]
 electron<-0.000549
 mzwin<-3###2.5ppm for mz cutoff
 timewin<-0.5###30 sec for rt cutoff
@@ -139,7 +140,7 @@ fillpeak<-function(xset.input,ppm,btw){
     tempvalue<-unlist(xset.input@groupidx[groupid])
     peakid<-peakid+1
     xset.input@groupidx[groupid]<-list(c(tempvalue,peakid))
-    if(i%%10000==0){print(c('finished row',i,"out of",nrow(newpeak)))}
+    if(i%%100000==0){print(c('finished row',i,"out of",nrow(newpeak)))}
     }
   peak.combine<-matrix(0,ncol=11,nrow=nrow(newpeak))
   peak.combine[,1]<-newpeak[,1]
@@ -170,7 +171,7 @@ len<-length(xset3@groupidx)#group number
 len2<-length(msfiles)#data files
 final<-array(rep(0,len*(len2+2)),dim=c(len,(len2+2)))##columns are m/z, rt, averaged intensity, and then 8 ratios
 for (i in 1:len){
-  if(i%%1000==0){print(c('PeakID...',i,'of...',len))}
+  if(i%%10000==0){print(c('PeakID...',i,'of...',len))}
   temp<-unlist(xset3@groupidx[i])
   len3<-length(temp)
   for (j in 1:len3){
@@ -182,6 +183,14 @@ for (i in 1:len){
 setwd(path_results)
 final[which(final==0)]<-100##replace 0 values
 write.table(final, file=allpeaks.filename, sep = ',',row.names=FALSE,col.names=cbind("mz","rt",t(msfiles)))
+
+
+
+
+
+
+
+
 
 
 

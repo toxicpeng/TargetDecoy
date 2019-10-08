@@ -132,7 +132,7 @@ if (datatype=="CAL"){
 }
 
 
-##Import NTA Ranked Target csv file, delete all columns except mass, Smiles, and score
+#####Import NTA Ranked Target csv file, delete all columns except mass, Smiles, and score#####
 ##Put each match in its own cell, then delete any rows with a 0 or negative score
 
 path<-here() 
@@ -183,7 +183,7 @@ write.csv(expandtable,file="compoundmatches_700to900.csv",row.names = FALSE)
 
 
 
-##Determining Formulae - for lock mass calibration figure##
+#####Determining Formulae - for lock mass calibration figure#######
 formcalnum<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.ms2,IsotopeList,Database,Fragment,adducts,IsotopeDB,mwoffset){##number input is the limit of element composition number, isolist is the mw of element
   #########restrict the element number
   mz<-Peakinfo$mz[index.input]
@@ -308,7 +308,7 @@ formcalnum<-function(number_input,Peakinfo,index.input,iso_list,rawdata,ppm,ppm.
 
 
 
-##Gathering Formula prediction numbers for lock mass calibration figure##
+#####Gathering Formula prediction numbers for lock mass calibration figure#####
 DatabaseSearchingFormulae<-function(cutoff,polarity,Database,mwoffset,xcallist){#cutoff for intensity
     element<-c("C","H","N","O","P","S","35Cl","37Cl","79Br","81Br","I")
     number_input<-t(rbind(c(1,0,0,1,0,0,0,0,0,0,0),c(50,80,10,10,0,0,2,1,7,3,0)))
