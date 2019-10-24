@@ -35,6 +35,8 @@ library(gtools)
 library(caTools)
 library(seqinr)
 library(rcdk)
+library(dplyr)
+library(tidyr)
 library(here)
 library(xcms)
 data(iso_list)
@@ -260,7 +262,7 @@ if (polarity==-1){
 }
 
 
-###Step 6.5: Extraction Blanks Subtraction ##########
+###Step 6.1: Extraction Blanks Subtraction ##########
 sublist<-NULL
 sublist<-list()
 for(n in 1:4){
@@ -308,10 +310,53 @@ for (j in 1:length(mainpeaks[,1])){
 subpeaks<-subpeaks[indexsub,]
 
 setwd(path.finaloutput)
-write.table(subpeaks,file=paste0(foldername,"_minusblank_ALL.csv"),sep=',',row.names = FALSE)
+write.table(subpeaks,file=paste0(foldername,"_minusblank_notfiltered.csv"),sep=',',row.names = FALSE)
 sublist[[n]]<-subpeaks
 }
 
+###Step 6.x: Optional final output -> Peaks with scores only, all matches expanded#####
+
+setwd(path.caldata)
+samplelist<-list.files()
+rankpeaks<-NULL
+ranklist<-NULL
+for(i in 1:length(sublist)){
+  DIAset<-i
+  if(DIAset==1){foldername<-"Neg100300_ranked"
+  }else if(DIAset==2){foldername<-"Neg300500_ranked"
+  }else if(DIAset==3){foldername<-"Neg500700_ranked"
+  }else if(DIAset==4){foldername<-"Neg700900_ranked"}
+  
+  ranktemp<-sublist[[i]]
+  rankpeaks<-ranktemp[,c(1,2,12,13,17,24)]
+  expandindex<-NULL
+  for(j in 1:length(rankpeaks[,6])){
+    if(rankpeaks[j,6]==""){rankpeaks[j,6]<-0}
+    if(rankpeaks[j,6]!=0){expandindex<-c(expandindex,j)}
+  }
+  rankpeaks<-rankpeaks[expandindex,]
+  ranktable<-data.frame(matrix(data=NA,nrow=1,ncol=6,dimnames=NULL))
+for (k in 1:length(rankpeaks[,1])){
+  formula<-unlist(strsplit(as.character(rankpeaks[k,4]),';'))
+  SMILES<-unlist(strsplit(as.character(rankpeaks[k,5]),';'))
+  matchscore<-unlist(strsplit(as.character(rankpeaks[k,6]),';'))
+  for (m in 1:length(formula)){
+    mzFin<-rankpeaks[k,1] #m/z
+    rtFin<-rankpeaks[k,2] #rt
+    IDFin<-samplelist[rankpeaks[k,3]] #Sample with Max Intensity
+    formulaFin<-formula[m] #formula
+    SMILESFin<-SMILES[m] #SMILES
+    scoreFin<-matchscore[m] #matchscore
+    ranktable<-rbind(ranktable,c(mzFin,rtFin,IDFin,formulaFin,SMILESFin,scoreFin))
+    }
+  
+  }
+  naindex<-which(is.na(ranktable[,1]))
+  ranktable<-ranktable[-naindex,]
+  names(ranktable)<-c("mz","rt","Sample with Max Intensity","Formula","SMILES","Match Score")
+  setwd(path.finaloutput)
+  write.table(ranktable,file=paste0(foldername,"_minusblank_final.csv"),sep=',',row.names = FALSE)
+}
 
 ###Step 7: Use Library to find matches in Target and Decoy databases------------------------------------------------------------
 
