@@ -63,11 +63,11 @@ path.rawdata<-paste(path,"/data/housedust", sep="")#raw data
 path.caldata<-paste(path,"/caldata/housedust", sep="")#calibrated data
 path.finaloutput<-paste(path,"/analysis/dust analysis", sep="")#folder for ID csv files
 
-target.file<-"Target_dust_formulanum.csv" #output for Sirius Target matches with weighted scores
+target.file<-"Allmatches_dust_final.csv" #output for Sirius Target matches with weighted scores
 #decoy.file<-"Decoy_Neg700900_nort.csv" #output for Sirius Decoy matches with weighted scores
 #RT.ID.file<-"FinalID_Neg700900_nort.csv" #output for Target matches with final scores (including RT prediction)
-#uniqueresults.file<-'UniqueID_Neg700900_nort.csv' #output for final match list (duplicates removed)
-#allresults.file<-'AllID_Neg700900_nort.csv' #output for all Library data
+uniqueresults.file<-'Allmatches_dust_finalUnique.csv' #output for final match list (duplicates removed)
+allresults.file<-'Allmatches_dust.csv' #output for all Library data
 
 polarity<--1 ##if neg -1, if pos 1
 
@@ -139,7 +139,7 @@ len<-length(xset3@groupidx)#group number
 len2<-length(msfiles)#data files
 final<-array(rep(0,len*(len2+2)),dim=c(len,(len2+2)))##columns are m/z, rt, averaged intensity, and then 8 ratios
 for (i in 1:len){
-  print(c('PeakID...',i,'of...',len))
+  if(i%%1000==0){print(c('PeakID...',i,'of...',len))}
   temp<-unlist(xset3@groupidx[i])
   len3<-length(temp)
   for (j in 1:len3){
@@ -188,12 +188,14 @@ index.save<-NULL
 for (i in 1:length(primary.ID)){
   index<-which(Check.Frag$libraryid==primary.ID[i])
   if (length(index)<=1){next}
+  if(i%%100==0){print(c(i,"out of",length(primary.ID)))}
   for (j in 2:length(index)){
     iso.mz<-Check.Frag$mz[index[j]]
     check.mz<-Check.Frag$mz[1:(index[j]-1)]
     check.intensity<-Check.Frag$intensity[1:(index[j]-1)]
     check.Carbon<-sapply(check.mz,FindCarbon,iso.mz,1.00335)
     iso.intensity<-Check.Frag$intensity[index[j]]
+    if(j%%100==0){print(c(i,"out of",length(index)))}
     for (k in 1:length(check.mz)){
     if (check.Carbon[k]==1&&iso.intensity<(0.3*check.intensity[k])){
       index.save<-c(index.save,index[j])###if there is any isotope
@@ -341,6 +343,7 @@ mylib.output<-Import.MS2(mylib.Target,MS2files,Cal.Frag)
 mylib.output3<-Finalscorerank(mylib.output,weightK,precursor)
 setwd(path.finaloutput)
 write.table(mylib.output3,file=target.file,sep=',',row.names = FALSE)
+write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
 
 #------------------------------------------]
 #initial ID without rt
@@ -371,11 +374,11 @@ write.table(mylib.output3,file=target.file,sep=',',row.names = FALSE)
 #-------------------------]
 #unique ID
 #-------------------------]
-#setwd(path.finaloutput)
+setwd(path.finaloutput)
 #Allcpd<-read.table(RT.ID.file,header=TRUE,sep=',',fill=TRUE)
-#Uniqueid<-UniqueID(output)
-#write.table(Uniqueid,file=uniqueresults.file,sep=',',row.names = FALSE)
-#write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
+Uniqueid<-UniqueID(mylib.output3)
+write.table(Uniqueid,file=uniqueresults.file,sep=',',row.names = FALSE)
+
 
 
 ###Extra: List of all printed counters---------------------------------------------------------------------------------

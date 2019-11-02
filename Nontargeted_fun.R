@@ -2146,7 +2146,7 @@ fillpeak<-function(xset.input,ppm,btw,xcallist){
   maxrt<-max(xset.input@peaks[,4])
   if (length(idsave)>0){
     for (k in 1:length(unlist(phenoData(xset.input)))){
-      #print(c('filling peakID...',k,'of...',length(unlist(phenoData(xset.input)))))
+      print(c('filling peakID...',k,'of...',length(unlist(phenoData(xset.input)))))
       index<-which(idsave[,2]==k)
       if (length(index)==0){next}
       xraw<-xcallist[[k]]
@@ -2169,7 +2169,9 @@ fillpeak<-function(xset.input,ppm,btw,xcallist){
     groupid<-newpeak[i,4]
     tempvalue<-unlist(xset.input@groupidx[groupid])
     peakid<-peakid+1
-    xset.input@groupidx[groupid]<-list(c(tempvalue,peakid))}
+    xset.input@groupidx[groupid]<-list(c(tempvalue,peakid))
+    if(i%%10000==0){print(c(i,"out of",nrow(newpeak)))}
+    }
   peak.combine<-matrix(0,ncol=11,nrow=nrow(newpeak))
   peak.combine[,1]<-newpeak[,1]
   peak.combine[,4]<-newpeak[,2]
@@ -2297,7 +2299,7 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset,xcallist){#cutoff 
   if (polarity==-1){
     Character.ion<-data.frame(frag=c('Br','Br','SO3','PO3
                                      '),
-                              mz=c(78.91885,80.91685,79.95735,78.95905))
+                              mz=c(78.91885,80.91685,79.95735,78.95905)) ##Are the extra charges on the SO3 and PO3 ions accounted for?
   }
   mylib.charac<-Score.charac(mylib.neutral,Cal.Frag,Neutral)
   
@@ -2398,6 +2400,7 @@ Sirius.build<-function(mylib,Cal.Frag,Isotope.Data){
 #import Sirius data
 #--------------------------------------
 Import.MS2<-function(mylib,MS2files,Cal.Frag){
+  setwd(path.siriusTargetresults)
   mylib$MS2score<-rep(0,nrow(mylib))
   ms2scoresave<-NULL
   for (i in 1:nrow(mylib)){
@@ -2472,12 +2475,12 @@ Finalscore<-function(mylib,weightK,precursor){
     adductscore<-unlist(strsplit(mylib$adductscore[i],';'))
   }
   
-#  if (mylib$chracaterscore[i]==0){#character score
+  if (mylib$chracaterscore[i]==0){#character score
     chascore<-rep(0,length(formula))
 
-#    }else{
-#    chascore<-unlist(strsplit(mylib$chracaterscore[i],';'))
-#  }
+    }else{
+    chascore<-unlist(strsplit(mylib$chracaterscore[i],';'))
+  }
   
   if (mylib$neutralscore[i]==0){#character score
     neutralscore<-rep(0,length(formula))
@@ -2559,6 +2562,8 @@ Finalscore<-function(mylib,weightK,precursor){
 #Should only be used in place of Decoy matching/cutoff score
 Finalscorerank<-function(mylib,weightK,precursor){ 
   mylib$allscore<-rep(0,nrow(mylib))
+  mylib.pull<-mylib
+  mylib$temp.scorevalues<-rep(0,nrow(mylib.pull))
   for (i in 1:nrow(mylib)){
     formula<-mylib$formula.pred[i]
     if (formula[1]=='0'){next}
@@ -2572,12 +2577,12 @@ Finalscorerank<-function(mylib,weightK,precursor){
       adductscore<-unlist(strsplit(mylib$adductscore[i],';'))
     }
     
-    #  if (mylib$chracaterscore[i]==0){#character score
+      if (mylib$chracaterscore[i]==0){#character score
     chascore<-rep(0,length(formula))
     
-    #    }else{
-    #    chascore<-unlist(strsplit(mylib$chracaterscore[i],';'))
-    #  }
+        }else{
+        chascore<-unlist(strsplit(mylib$chracaterscore[i],';'))
+      }
     
     if (mylib$neutralscore[i]==0){#character score
       neutralscore<-rep(0,length(formula))
@@ -2619,15 +2624,36 @@ Finalscorerank<-function(mylib,weightK,precursor){
     temp.score<-MS1score*weightK[1]+MS2score*weightK[2]+ionmodescore*weightK[3]+
       neutralscore*weightK[4]+chascore*weightK[5]+adductscore*weightK[6]
     
-    ####ion mode score is -1, put all score to 0
+    #Optional code to extract quantities of each score value# tag:pullscore
+    mylib.pull$formulacount[i]<-length(formula)
+    mylib.pull$mserrorcount[i]<-length(mserrorscore)
+    mylib.pull$MS1scorecount[i]<-length(MS1score)
+    mylib.pull$MS1scorefail[i]<-length(which(MS1score<=0))
+    mylib.pull$MS2scorecount[i]<-length(MS2score)
+    mylib.pull$MS2scorefail[i]<-length(which(MS2score<=0))    
+    mylib.pull$neutralscorecount[i]<-length(neutralscore)
+    mylib.pull$neutralscorefail[i]<-length(which(neutralscore<=0))      
+    mylib.pull$chascorecount[i]<-length(chascore)
+    mylib.pull$chascorefail[i]<-length(which(chascore<=0))  
+    mylib.pull$adductscorecount[i]<-length(adductscore)
+    mylib.pull$adductscorefail[i]<-length(which(adductscore<=0))      
+    mylib.pull$ionmodescorecount[i]<-length(ionmodescore)
+    mylib.pull$ionmodescorefail[i]<-length(which(ionmodescore<0))      
+    mylib.pull$isoscorecount[i]<-length(isoscore)
+    mylib.pull$isoscorefail[i]<-length(which(isoscore<(log(0.5))))      
+    mylib.pull$temp.scorecount[i]<-length(temp.score)
+    mylib.pull$temp.scorefail[i]<-length(which(temp.score<=0)) 
+    mylib.pull$temp.scorevalues[i]<-paste(c(temp.score),collapse=';')
+    
+    ####ion mode score is -1, put allscore to 0
     index.ion<-which(ionmodescore<0)
     if (length(index.ion)>0){
       temp.score[index.ion]<-0
     }
     
-    ####isotope score is <0.8, put all score to 0
+    ####isotope score is <0.8, put allscore to 0    
     isoscore<-as.numeric(isoscore)
-    index.iso<-which(isoscore<(log(0.5)))
+    index.iso<-which(isoscore<(log(0.5)))   # But log(0.5)=(-0.30101)...  -Steven
     if (length(index.iso)>0){
       temp.score[index.iso]<-0
     }
@@ -2646,7 +2672,7 @@ Finalscorerank<-function(mylib,weightK,precursor){
     adductscore<-adductscore[ordervector]
     MS2score<-MS2score[ordervector]
     temp.score<-temp.score[ordervector]
-    
+
     mylib$formula.pred[i]<-paste(c(formula),collapse=';')
     mylib$isoscore[i]<-paste(c(isoscore),collapse=';')
     mylib$mserror[i]<-paste(c(mserrorscore),collapse=';')
@@ -2666,6 +2692,13 @@ Finalscorerank<-function(mylib,weightK,precursor){
   index<-which(mylib$mz>min(precursor)-2.5)
   index2<-which(mylib$mz[index]<max(precursor)+2.5)
   mylib<-mylib[index[index2],]##only output the results with MS2 fragments
+  
+  index<-which(mylib.pull$mz>min(precursor)-2.5)
+  index2<-which(mylib.pull$mz[index]<max(precursor)+2.5)
+  mylib.pull<-mylib.pull[index[index2],]##only output the results with MS2 fragments
+  
+  setwd(path.finaloutput)
+  write.table(mylib.pull,file="rankscorevalues3.csv",sep=',',row.names = FALSE)
   return(mylib)
 }
 
@@ -2863,23 +2896,24 @@ dbWriteTable(finaldb,'all.TSCA',rawdata)}
 #produce unique ID
 #----------------------------------------
 UniqueID<-function(mylib){
-  mylib$avg<-rowMeans(mylib[,3:(2+length(msfiles))])
-  mylib<-mylib[order(mylib$avg,decreasing=TRUE),]##RANK FROM BIG TO LOW
-  index.del<-NULL
-  for (i in 2:nrow(mylib)){
-    index.formula<-which(mylib$Final[1:(i-1)]==mylib$Final[i])
-    if (length(index.formula)==0){next}
-    index.rt<-which(abs(mylib$rt[index.formula]-mylib$rt[i])<0.2)
-    if (length(index.rt)==0){next}
-    index.del<-c(index.del,i)
-  }
-  if (length(index.del)>0){
-    mylib<-mylib[-index.del,]   #This for loop eliminates any table rows with duplicate formulas
-  } 
+#  mylib$avg<-rowMeans(mylib[,3:(2+length(msfiles))])
+#  mylib<-mylib[order(mylib$avg,decreasing=TRUE),]##RANK FROM BIG TO LOW
+#  index.del<-NULL
+#  for (i in 2:nrow(mylib)){
+#    index.formula<-which(mylib$Final[1:(i-1)]==mylib$Final[i])
+#    if (length(index.formula)==0){next}
+#    index.rt<-which(abs(mylib$rt[index.formula]-mylib$rt[i])<0.2)
+#    if (length(index.rt)==0){next}
+#    index.del<-c(index.del,i)
+#  }
+#  if (length(index.del)>0){
+#    mylib<-mylib[-index.del,]   #This for loop eliminates any table rows with duplicate formulas
+#  } 
   
   mylib$SMILES<-as.character(mylib$SMILES)##defactor
   mylib$allscore0<-mylib$allscore
   mylib$allscore0<-as.character(mylib$allscore0)
+  mylib$formula.final<-as.character(mylib$formula.pred)
   for (i in 1:nrow(mylib)){
     score<-mylib$allscore0[i]
     score<-strsplit(as.character(score),';')
@@ -2887,8 +2921,11 @@ UniqueID<-function(mylib){
     ID<-which.max(score)
     smiles<-strsplit(as.character(mylib$SMILES[i]),';')
     smiles<-unlist(smiles)
+    form.unique<-strsplit(mylib$formula.pred[i],';')
+    form.unique<-unlist(form.unique)
     mylib$allscore0[i]<-score[ID[1]]
     mylib$SMILES[i]<-smiles[ID[1]]
+    mylib$formula.final[i]<-form.unique[ID[1]]
     print(c("finished",i,"out of",nrow(mylib)))
   }
   return(mylib)
