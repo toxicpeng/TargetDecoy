@@ -374,7 +374,7 @@ write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
 #-------------------------]
 #unique ID
 #-------------------------]
-setwd(path.finaloutput)
+#setwd(path.finaloutput)
 #Allcpd<-read.table(RT.ID.file,header=TRUE,sep=',',fill=TRUE)
 Uniqueid<-UniqueID(mylib.output3)
 write.table(Uniqueid,file=uniqueresults.file,sep=',',row.names = FALSE)

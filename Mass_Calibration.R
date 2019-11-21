@@ -20,7 +20,7 @@ data(iso_list)
 ###You can use setwd() to change the current directory to the root.###
 ###If your folder structure is different, you can change the folder names here.###
 path<-here()
-path.lock<-paste(path,"/analysis/dust analysis", sep="")
+path.lock<-paste(path,"/analysis/jeans analysis/lockmass", sep="")
 ###Load function files and set universal variables.###
 ###If you make changes to function files, you will need to run these 2 lines again###
 setwd(path)
@@ -30,8 +30,8 @@ polarity<--1##if neg -1, if pos 1
 
 ###Step 2: Change source (raw data) and target (calibrated data) folders-------------------------------------------------------
 
-path.source<-paste(path,"/data/housedust", sep="")
-path.destination<-paste(path,"/caldata/housedust", sep="")
+path.source<-paste(path,"/data/20191114/Neg500700", sep="")
+path.destination<-paste(path,"/caldata/20191114 jeans/Neg500700", sep="")
 
 ###Step 3: Pre-load raw data---------------------------------------------------------------------------------------------------
 
@@ -49,7 +49,7 @@ for (i in 1:length(msfiles)){
 
 ###Mass Calibration###
 setwd(path.lock)
-LockMass.NEG<-read.table("lockmassdust.csv",header=TRUE,sep=',')
+LockMass.NEG<-read.table("lockmassjeans2NEG.csv",header=TRUE,sep=',')
 LockMass.NEG<-LockMass.NEG$Lock
 
 for (i in 1:length(msfiles)){

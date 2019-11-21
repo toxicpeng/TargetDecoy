@@ -18,8 +18,8 @@ data(iso_list)
 ###If your folder structure is different, you can change the folder names here.###
 rootdir<-getwd()
 path<-rootdir
-path.source<-paste(path,"/data/20190426", sep="")
-path.destination<-paste(path,"/analysis/products analysis/lockmass", sep="")
+path.source<-paste(path,"/data/20191114", sep="")
+path.destination<-paste(path,"/analysis/jeans analysis/lockmass", sep="")
 path.lock<-paste(path,"/analysis/products analysis/lockmass", sep="")
 
 ###Load function files and set universal variables.###
@@ -28,32 +28,50 @@ setwd(path)
 source("Nontargeted_fun.r")
 #LockMass<-c(131.9614,165.0188,172.956991,227.201104,255.232405,312.972263,411.12912)##Lock Mass, C8H5O4, C14H27O2, C16H31O2, humic acid
 
+polarity<-1##if neg -1, if pos 1
 
 ###Pre-load mzXML raw data into a list. This saves time when running other functions which require multiple xcmsRaw objects.###
 xrawdata<-NULL
 xrawdata<-list()
 setwd(path.source)
 msfiles<-list.files(pattern="\\.mzXML$", ignore.case=TRUE)
-msfiles<-msfiles[145:147]
+if(polarity==1){msfiles<-msfiles[c(4:13,36:45,64:73,92:101)]}
+if(polarity==-1){msfiles<-msfiles[c(21:30,50:59,78:87,106:115)]}
 for (i in 1:length(msfiles)){
   xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
   xrawdata[i]<-xdata
 }
-#for Jeans samples, NEG=xrawdata[1:9], POS=xrawdata[10:20]
+#for Jeans 20190614 samples, NEG=xrawdata[1:9], POS=xrawdata[10:20]
 ######### Body #########
-
-polarity<-1##if neg -1, if pos 1
 
 ######Lockmass Detection######
 
 ###Identify lockmasses in raw data and create a csv file###
 setwd(path.source)
-#xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,polarity="positive")##data files,peak detection algorithm,mass error,peak width (min and max width in seconds),signal/noise threshold,polarity) 
-xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,polarity="positive")
+xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,polarity="positive")##data files,peak detection algorithm,mass error,peak width (min and max width in seconds),signal/noise threshold,polarity) 
+#xset<-xcmsSet(msfiles,method='centWave',ppm=2.5,peakwidth=c(5,20),snthresh=10,polarity="negative")
 result<-findlock(xrawdata,xset,2000,0.001)##list of xcmsRaw objects, xcmsSet object, intensity threshold, mzstep. See Nontargeted_fun.R for "findlock" code.
 setwd(path.destination)
-write.table(result, file="lockmassproductsPOS_sample43to45.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
-#Reference Note: This function found 802 masses when run on the 100_300_Neg sample set (no blanks)
+write.table(result, file="lockmassjeans2POS.csv", sep = ',',row.names=FALSE,col.names=c("mz","minintensity","sampleID"))
+#Reference Note: This function found 802 masses when run on the 100_300_Neg house dust sample set (no blanks)
+
+###Process lockmasses, predict formulas, and produce a final list (work in progress...)###
+locktable<-result
+
+number.limit<-c(20,40,10)
+element.DAT<-c("C","H","O")
+mw.element<-iso.element(element.DAT,iso_list,1)##calculate mw for each element
+number.low<-rep(0,3)
+numberset<-cbind(number.low,number.limit,element.DAT)
+number_list<-c(1,3,3)
+mwoffset<-0
+formula.list<-NULL
+for(i in 1:nrow(locktable)){
+  mz.pred<-locktable[i,1]
+  ppm<-3
+  formula.lock<-formpredCHO(mz.pred,ppm,numberset,mw.element[,3],number_list,mwoffset)
+  formula.list<-c(formula.list,formula.lock)
+}
 
 ######Extra Functions for Confirmation#####
 

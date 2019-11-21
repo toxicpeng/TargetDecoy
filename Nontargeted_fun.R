@@ -998,6 +998,42 @@ cppFunction(
   return(output(Range(0,kk-1),Range(0,11)));
   }')
 
+
+cppFunction(
+  'NumericMatrix itercalCHO(NumericMatrix numberset, NumericVector mz_list,double ppm, double mz, double mwoffset){
+  NumericMatrix output(500,3);
+  int i1;
+  int i2;
+  int i3;
+  int kk=0;
+  double temp1;
+  double temp2;
+  double temp3;
+  double temp4;
+  double temp;
+  double value=100;
+  double RDBE;
+  for (i1=numberset(0,0);i1<=numberset(0,1);i1++){
+  for (i2=numberset(1,0);i2<=(numberset(1,1)<(i1*2+3)?numberset(1,1):(i1*2+3));i2++){
+  for (i3=numberset(2,0);i3<=(numberset(2,1)<(i1*1.2+2)?numberset(2,1):(i1*1.2+2));i3++){
+  temp1=i1*mz_list[0]+i2*mz_list[1]+i3*mz_list[2];
+  if (temp1>(mz+1)){
+  break;}
+  temp=temp1;
+  value=abs(1000000*(mz-temp)/temp);
+  RDBE=i1-0.5/(i2+0.0001)+0.5/(0.5)+1;
+  if (value<ppm&&RDBE>=0&&RDBE<40){
+  NumericVector out=NumericVector::create(i1,i2,i3,value);
+  output.row(kk)=out;
+  kk=kk+1;
+  if (kk>=500){return(output(Range(0,kk-1),Range(0,3)));}
+  }
+  if (temp>(mz+1)){break;}
+  }}}
+  if (kk==0){
+  kk=1;}
+  return(output(Range(0,kk-1),Range(0,3)));
+  }')
 ######################function to calculate formula##############
 formpred<-function(mz,ppm,numberset,mz_list,number_list,mwoffset){
   numberset<-matrix(as.numeric(numberset[,1:2]),ncol=2,nrow=nrow(numberset))
@@ -1010,6 +1046,15 @@ formpred<-function(mz,ppm,numberset,mz_list,number_list,mwoffset){
   return(for.pred)
 }
 
+formpredCHO<-function(mz,ppm,numberset,mz_list,number_list,mwoffset){
+  numberset<-matrix(as.numeric(numberset[,1:2]),ncol=2,nrow=nrow(numberset))
+  #formulae<-rep(0,nrow(numberset)) Not used???
+  #mz_list<-mz_list$mass
+  for.pred<-itercalCHO(numberset,mz_list,ppm,mz,mwoffset)##mwoffset is for prediction of rare element for fragment
+  if (length(for.pred)<2)
+    for.pred<-NULL
+  return(for.pred)
+}
 
 iso.otheratom<-rbind(1:6,1:6)###save the isotopic distribution of other atoms
 iso.otheratom[1,1]<-iso_list[4,3]-iso_list[3,3]##mz difference of C
