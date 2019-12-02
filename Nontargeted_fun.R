@@ -102,11 +102,11 @@ PredictFun<-function(obj,x){
 
 ###################curve fitting#####################
 fitlock<-function(lockdf,mzlist,inputfun){
-  ##If there is only 1 lockmass in the current column, create a flat curve and return it.
+  ##If there is only 1 or 2 lockmasses in the current column, create a flat curve and return it.
   table<-lockdf
-  if(length(table[,1])<2){
+  if(length(table[,1])<3|all(table[,2]==0)){ ##Also returns a flat curve if all the mass error values are 0
     calmass<-mzlist/(1+table[1,2])
-    return (calmass)
+    return (list(calmass,inputfun))
   }
   
   ##Attempts to first determine if a single curve can be used to fit all lock masses
@@ -129,6 +129,7 @@ fitlock<-function(lockdf,mzlist,inputfun){
     if (R.single<0.8){
       index<-which.max(abs(res.single))##the maximal residual error
       table.single<-table.single[-index,]}
+    if(all(table.single[,2]==0)){break} ##If all mass errors are zero, do not use only one function
   }
   
 #####save the curve fitting if it is pretty good########
@@ -139,7 +140,7 @@ if (nrow(table.single)>8&&R.single>0.9){
 
   
   #####predict new mass###############
-  table<-table.single
+  if(!all(table.single[,2]==0)){table<-table.single}
     fit.single<-fitlistall[[index.single]]
     calmass1<-NULL
     calmass2<-NULL
@@ -599,7 +600,6 @@ MassCal<-function(xraw,LockMass,input,ppminput){
         if (SD<1.5*10^(-6)){break}
         index<-which.max(abs(shiftsave))
         shiftsave<-shiftsave[-index]}
-      print(c("cal",i))
       index.cor<-which(xraw@env$mz[correctindex]<200)####calibrate the mass below 250
       index.cor1<-which(xraw@env$mz[correctindex]>200)####calibrate the mass below 250
       index.save<-which(xraw@env$mz[correctindex[index.cor1]]<400)
@@ -642,7 +642,7 @@ MassCal<-function(xraw,LockMass,input,ppminput){
       calmz<-output[[1]]
       temp.fun<-output[[2]]
       xraw@env$mz[correctindex]<-calmz}
-    if(i%%100==0){print(i)}
+    if(i%%10==0){print(i)}
     }
   return(xraw)}
 
@@ -1944,7 +1944,7 @@ DefineAdducts<-function(adducts){
     element<-c(0,-3,0,-1,0,0,0,0,0,0,0,-19.01839)
   }
   if (adducts=='[M+Cl]-'){
-    element<-c(0,0,0,0,0,0,1,0,0,0,0,34.96885)
+    element<-c(0,0,0,0,0,0,1,0,0,0,0,34.968853)
   }
   if (adducts=='[M+CH2O2-H]-'){
     element<-c(1,1,0,2,0,0,0,0,0,0,0,44.99765)
@@ -1956,7 +1956,19 @@ DefineAdducts<-function(adducts){
     element<-c(0,0,0,1,0,0,0,0,-1,0,0,-62.92342)
   }
   if (adducts=='[M+H]+'){
-    element<-c(0,0,0,1,0,0,0,0,0,0,0,1.007825)
+    element<-c(0,1,0,0,0,0,0,0,0,0,0,1.007825)
+  }
+  if (adducts=='[M+H-H2O]+'){
+    element<-c(0,-1,0,1,0,0,0,0,0,0,0,-17.00274)
+  }
+  if (adducts=='[M+NH4]+'){
+    element<-c(0,4,1,0,0,0,0,0,0,0,0,18.034374)
+  }
+  if (adducts=='[M+Na]+'){
+    element<-c(0,0,0,0,0,0,0,0,0,0,0,22.989770)
+  }
+  if (adducts=='[M+CH3OH+H]+'){
+    element<-c(1,5,0,1,0,0,0,0,0,0,0,33.03404)
   }
   return(element)
 }
@@ -2032,8 +2044,8 @@ pattern.neutral<-function(smiles,fragment){
     Match.loss= smartsSearchOB(sdf,"[CX3](=O)[OX1H0-,OX2H1]",uniqueMatches=FALSE)#carboxylic acid or conjugate salt
     if (max(Match.loss)>0){return(1)}##matched
   }
-  if (fragment=='H3PO4'){
-    Match.loss= smartsSearchOB(sdf,"[$(P(=[OX1])([$([OX2H]),$([OX1-]),$([OX2]P)])([$([OX2H]),$([OX1-]),$([OX2]P)])[$([OX2H]),$([OX1-]),$([OX2]P)]),$([P+]([OX1-])([$([OX 2H]),$([OX1-]),$([OX2]P)])([$([OX2H]),$([OX1-]),$([OX2]P)])[$([OX2H]),$([OX1-]),$([OX2]P)])]",uniqueMatches=FALSE)#Phosphate
+  if (fragment=='H3PO4'){ ###Commented out for now due to frequent occurrence of unknown error when searching positive ion mode results against database
+    Match.loss= smartsSearchOB(sdf,"[$(P(=[OX1])([$([OX2H]),$([OX1-]),$([OX2]P)])([$([OX2H]),$([OX1-]),$([OX2]P)])[$([OX2H]),$([OX1-]),$([OX2]P)]),$([P+]([OX1-])([$([OX2H]),$([OX1-]),$([OX2]P)])([$([OX2H]),$([OX1-]),$([OX2]P)])[$([OX2H]),$([OX1-]),$([OX2]P)])]",uniqueMatches=FALSE)#Phosphate
     if (max(Match.loss)>0){return(1)}##matched
   }
   if (fragment=='CO'){
@@ -2304,7 +2316,7 @@ DatabaseSearching<-function(cutoff,polarity,Database,mwoffset,xcallist){#cutoff 
     xrawdata<-xcallist[[i]]
     for (j in 1:length(index)){
       formula<-NULL
-      formula<-formcal(number_input,Library.new,index[j],iso_list,xrawdata,ppm,ppm.ms2,IsotopeData,Database,Cal.Frag,adducts.input,IsotopeDB,mwoffset)
+      formula<-formcal(number_input,Library.new,index[j],iso_list,xrawdata,ppm,ppm.ms2,IsotopeData,Database,Cal.Frag,Adducts,IsotopeDB,mwoffset)
       if (length(formula)<2){next}
       #max.form<-nrow(formula) Not used???
       mylib$formula.pred[index[j]]<-paste(formula[,1],collapse=';')
@@ -2608,7 +2620,8 @@ Finalscore<-function(mylib,weightK,precursor){
 Finalscorerank<-function(mylib,weightK,precursor){ 
   mylib$allscore<-rep(0,nrow(mylib))
   mylib.pull<-mylib
-  mylib$temp.scorevalues<-rep(0,nrow(mylib.pull))
+  mylib$temp.scorevalues<-rep(0,nrow(mylib))
+  if(length(mylib$chracaterscore)<1){mylib$chracaterscore<-rep(0,nrow(mylib))}
   for (i in 1:nrow(mylib)){
     formula<-mylib$formula.pred[i]
     if (formula[1]=='0'){next}
@@ -2670,25 +2683,25 @@ Finalscorerank<-function(mylib,weightK,precursor){
       neutralscore*weightK[4]+chascore*weightK[5]+adductscore*weightK[6]
     
     #Optional code to extract quantities of each score value# tag:pullscore
-    mylib.pull$formulacount[i]<-length(formula)
-    mylib.pull$mserrorcount[i]<-length(mserrorscore)
-    mylib.pull$MS1scorecount[i]<-length(MS1score)
-    mylib.pull$MS1scorefail[i]<-length(which(MS1score<=0))
-    mylib.pull$MS2scorecount[i]<-length(MS2score)
-    mylib.pull$MS2scorefail[i]<-length(which(MS2score<=0))    
-    mylib.pull$neutralscorecount[i]<-length(neutralscore)
-    mylib.pull$neutralscorefail[i]<-length(which(neutralscore<=0))      
-    mylib.pull$chascorecount[i]<-length(chascore)
-    mylib.pull$chascorefail[i]<-length(which(chascore<=0))  
-    mylib.pull$adductscorecount[i]<-length(adductscore)
-    mylib.pull$adductscorefail[i]<-length(which(adductscore<=0))      
-    mylib.pull$ionmodescorecount[i]<-length(ionmodescore)
-    mylib.pull$ionmodescorefail[i]<-length(which(ionmodescore<0))      
-    mylib.pull$isoscorecount[i]<-length(isoscore)
-    mylib.pull$isoscorefail[i]<-length(which(isoscore<(log(0.5))))      
-    mylib.pull$temp.scorecount[i]<-length(temp.score)
-    mylib.pull$temp.scorefail[i]<-length(which(temp.score<=0)) 
-    mylib.pull$temp.scorevalues[i]<-paste(c(temp.score),collapse=';')
+#    mylib.pull$formulacount[i]<-length(formula)
+#    mylib.pull$mserrorcount[i]<-length(mserrorscore)
+#    mylib.pull$MS1scorecount[i]<-length(MS1score)
+#    mylib.pull$MS1scorefail[i]<-length(which(MS1score<=0))
+#    mylib.pull$MS2scorecount[i]<-length(MS2score)
+#    mylib.pull$MS2scorefail[i]<-length(which(MS2score<=0))    
+#    mylib.pull$neutralscorecount[i]<-length(neutralscore)
+#    mylib.pull$neutralscorefail[i]<-length(which(neutralscore<=0))      
+#    mylib.pull$chascorecount[i]<-length(chascore)
+#    mylib.pull$chascorefail[i]<-length(which(chascore<=0))  
+#    mylib.pull$adductscorecount[i]<-length(adductscore)
+#    mylib.pull$adductscorefail[i]<-length(which(adductscore<=0))      
+#    mylib.pull$ionmodescorecount[i]<-length(ionmodescore)
+#    mylib.pull$ionmodescorefail[i]<-length(which(ionmodescore<0))      
+#    mylib.pull$isoscorecount[i]<-length(isoscore)
+#    mylib.pull$isoscorefail[i]<-length(which(isoscore<(log(0.5))))      
+#    mylib.pull$temp.scorecount[i]<-length(temp.score)
+#    mylib.pull$temp.scorefail[i]<-length(which(temp.score<=0)) 
+#    mylib.pull$temp.scorevalues[i]<-paste(c(temp.score),collapse=';')
     
     ####ion mode score is -1, put allscore to 0
     index.ion<-which(ionmodescore<0)
@@ -2738,12 +2751,12 @@ Finalscorerank<-function(mylib,weightK,precursor){
   index2<-which(mylib$mz[index]<max(precursor)+2.5)
   mylib<-mylib[index[index2],]##only output the results with MS2 fragments
   
-  index<-which(mylib.pull$mz>min(precursor)-2.5)
-  index2<-which(mylib.pull$mz[index]<max(precursor)+2.5)
-  mylib.pull<-mylib.pull[index[index2],]##only output the results with MS2 fragments
+#  index<-which(mylib.pull$mz>min(precursor)-2.5)
+#  index2<-which(mylib.pull$mz[index]<max(precursor)+2.5)
+#  mylib.pull<-mylib.pull[index[index2],]##only output the results with MS2 fragments
   
-  setwd(path.finaloutput)
-  write.table(mylib.pull,file="rankscorevalues3.csv",sep=',',row.names = FALSE)
+#  setwd(path.finaloutput)
+#  write.table(mylib.pull,file="rankscorevalues3.csv",sep=',',row.names = FALSE)
   return(mylib)
 }
 

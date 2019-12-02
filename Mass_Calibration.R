@@ -25,13 +25,13 @@ path.lock<-paste(path,"/analysis/jeans analysis/lockmass", sep="")
 ###If you make changes to function files, you will need to run these 2 lines again###
 setwd(path)
 source("Nontargeted_fun.r")
-polarity<--1##if neg -1, if pos 1
+polarity<-1##if neg -1, if pos 1
 #LockMass<-c(131.9614,165.0188,172.956991,227.201104,255.232405,312.972263,411.12912)##Lock Mass, C8H5O4, C14H27O2, C16H31O2, humic acid
 
 ###Step 2: Change source (raw data) and target (calibrated data) folders-------------------------------------------------------
 
-path.source<-paste(path,"/data/20191114/Neg500700", sep="")
-path.destination<-paste(path,"/caldata/20191114 jeans/Neg500700", sep="")
+path.source<-paste(path,"/data/20191114_blanks/Neg700900", sep="")
+path.destination<-paste(path,"/caldata/20191114 jeans_blanks/Neg700900", sep="")
 
 ###Step 3: Pre-load raw data---------------------------------------------------------------------------------------------------
 
@@ -48,9 +48,15 @@ for (i in 1:length(msfiles)){
 ###Step 4: Mass calibration and writing to new mzXML files---------------------------------------------------------------------
 
 ###Mass Calibration###
+if(polarity==1){
+  setwd(path.lock)
+  LockMass.POS<-read.table("lockmassjeans2POS.csv",header=TRUE,sep=',') ##Note! The lock masses should be the most abundant isotopic mass (no e- added)
+  LockMass.POS<-LockMass.POS$Lock}
+if(polarity==-1){
 setwd(path.lock)
-LockMass.NEG<-read.table("lockmassjeans2NEG.csv",header=TRUE,sep=',')
-LockMass.NEG<-LockMass.NEG$Lock
+LockMass.NEG<-read.table("lockmassjeans2NEG.csv",header=TRUE,sep=',') ##Note! The lock masses should be the most abundant isotopic mass (no e- added)
+LockMass.NEG<-LockMass.NEG$Lock}
+
 
 for (i in 1:length(msfiles)){
   #xrawdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)

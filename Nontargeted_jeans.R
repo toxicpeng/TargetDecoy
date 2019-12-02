@@ -54,21 +54,20 @@ setwd(path)
 source("Nontargeted_fun.r")
 source("Analysis_quick.r")
 
-adducts.input<-c('[M]-','[M-H]-','[M-Br+O]-','[M-H-H2O]-','[M+Cl]-','[M+CH2O2-H]-')
+
 Ionsource<-'ESI'
 Intensitycut<-10^5###intensity cutoff to pick the peaks for matching
 
 ###Step 2: Modify for each run as necessary:------------------------------------------------------------------------------------------
 
 ###File paths/names which must be changed with every sample set
-path.rawdata<-paste(path,"/data/20190614/Neg100300", sep="")#raw data
-path.caldata<-paste(path,"/caldata/20190614 jeans/Neg100300", sep="")#calibrated data
-path.finaloutput<-paste(path,"/analysis/jeans analysis/blank_subtraction", sep="")#folder for ID csv files
+path.rawdata<-paste(path,"/data/20191114/Neg300500", sep="")#raw data
+path.caldata<-paste(path,"/caldata/20191114 jeans/Neg300500", sep="")#calibrated data
+path.finaloutput<-paste(path,"/analysis/jeans analysis/20191114", sep="")#folder for ID csv files
 
-path.rawblanks<-paste(path,"/data/20190614/Neg100300", sep="")#raw solvent blanks data
-path.calblanks<-paste(path,"/caldata/20190614 jeans_blanks", sep="")#calibrated data
+path.calblanks<-paste(path,"/caldata/20191114 jeans_blanks/Neg300500", sep="")#calibrated data
 
-target.file<-"Target_dust_formulanum.csv" #output for Sirius Target matches with weighted scores
+target.file<-"Target_Neg300500_ranked.csv" #output for Sirius Target matches with weighted scores
 #decoy.file<-"Decoy_Neg700900_nort.csv" #output for Sirius Decoy matches with weighted scores
 #RT.ID.file<-"FinalID_Neg700900_nort.csv" #output for Target matches with final scores (including RT prediction)
 #uniqueresults.file<-'UniqueID_Neg700900_nort.csv' #output for final match list (duplicates removed)
@@ -80,12 +79,12 @@ polarity<--1 ##if neg -1, if pos 1
 
 if(polarity==-1){
   setwd(path.lock)
-  LockMass.NEG<-read.table("lockmassjeansNEG.csv",header=TRUE,sep=',')
+  LockMass.NEG<-read.table("lockmassjeans2NEG.csv",header=TRUE,sep=',')
   LockMass<-LockMass.NEG$Lock
 }
 if(polarity==1){
   setwd(path.lock)
-  LockMass.POS<-read.table("lockmassjeansPOS.csv",header=TRUE,sep=',')
+  LockMass.POS<-read.table("lockmassjeans2POS.csv",header=TRUE,sep=',')
   LockMass<-LockMass.POS$Lock
 }
 
@@ -252,7 +251,7 @@ for (i in 1:length(primary.ID)){
 if (polarity==1){
   Adducts<-c('[M+H]+','[M+H-H2O]+','[M+NH4]+','[M+Na]+','[M+CH3OH+H]+')
   MW.adducts<-c(1.007825,-17.00274,18.03437,22.98977,33.03404)
-  Adducts.Find<-AdductsFind(Library.new,xcaldata,MW.adducts,10^(-5))
+  Adducts.Find<-AdductsFind(Library.new,xcaldata,MW.adducts,10^(-5),Adducts)
 }
 
 if (polarity==-1){
@@ -261,102 +260,6 @@ if (polarity==-1){
   Adducts.Find<-AdductsFind(Library.new,xcaldata,MW.adducts,2*10^(-6),Adducts)
 }
 
-
-###Step 6.1: Extraction Blanks Subtraction ##########
-sublist<-NULL
-sublist<-list()
-for(n in 1:4){
-DIAset<-n
-if(DIAset==1){foldername<-"Neg100300_ranked"
-}else if(DIAset==2){foldername<-"Neg300500_ranked"
-}else if(DIAset==3){foldername<-"Neg500700_ranked"
-}else if(DIAset==4){foldername<-"Neg700900_ranked"}
-
-path.ranked<-paste0(path,"/analysis/jeans analysis/ranked/",foldername)
-setwd(path.ranked)
-mainpeaks<-read.table(list.files()[2],header=TRUE,sep=',',fill=TRUE)
-
-xblankdata<-NULL
-xblankdata<-list()
-setwd(path.calblanks)
-msfiles<-list.files(pattern="\\.mzXML$", ignore.case=TRUE)
-first<-(DIAset*2-1)
-last<-(DIAset*2)
-for (i in first:last){
-  xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
-  xblankdata[[i]]<-xdata
-}
-
-subpeaks<-mainpeaks
-indexsub<-NULL
-for (j in 1:length(mainpeaks[,1])){
-  
-  mzmin<-(mainpeaks[j,1])-(mainpeaks[j,1]*(2.5*10^-6))
-  mzmax<-max(mainpeaks[j,1])+(mainpeaks[j,1]*(2.5*10^-6))
-  rtmin<-min(mainpeaks[,2])*60
-  rtmax<-max(mainpeaks[,2])*60
-  
-  peaks1<-rawEIC(xblankdata[[first]],mzrange=cbind(mzmin,mzmax),rtrange=cbind(rtmin,rtmax))
-  peaks2<-rawEIC(xblankdata[[last]],mzrange=cbind(mzmin,mzmax),rtrange=cbind(rtmin,rtmax))
-  peaks3<-mean(c(max(peaks1$intensity),max(peaks2$intensity)))
-  
-  
-  for (k in 3:11){
-    subpeaks[j,k]<-mainpeaks[j,k]-peaks3
-    if(subpeaks[j,k]<Intensitycut){subpeaks[j,k]<-100}
-  }
-  if (max(subpeaks[j,3:11])>101){indexsub<-c(indexsub,j)}
-}
-subpeaks<-subpeaks[indexsub,]
-
-setwd(path.finaloutput)
-write.table(subpeaks,file=paste0(foldername,"_minusblank_notfiltered.csv"),sep=',',row.names = FALSE)
-sublist[[n]]<-subpeaks
-}
-
-###Step 6.x: Optional final output -> Peaks with scores only, all matches expanded#####
-
-setwd(path.caldata)
-samplelist<-list.files()
-rankpeaks<-NULL
-ranklist<-NULL
-for(i in 1:length(sublist)){
-  DIAset<-i
-  if(DIAset==1){foldername<-"Neg100300_ranked"
-  }else if(DIAset==2){foldername<-"Neg300500_ranked"
-  }else if(DIAset==3){foldername<-"Neg500700_ranked"
-  }else if(DIAset==4){foldername<-"Neg700900_ranked"}
-  
-  ranktemp<-sublist[[i]]
-  rankpeaks<-ranktemp[,c(1,2,12,13,17,24)]
-  expandindex<-NULL
-  for(j in 1:length(rankpeaks[,6])){
-    if(rankpeaks[j,6]==""){rankpeaks[j,6]<-0}
-    if(rankpeaks[j,6]!=0){expandindex<-c(expandindex,j)}
-  }
-  rankpeaks<-rankpeaks[expandindex,]
-  ranktable<-data.frame(matrix(data=NA,nrow=1,ncol=6,dimnames=NULL))
-for (k in 1:length(rankpeaks[,1])){
-  formula<-unlist(strsplit(as.character(rankpeaks[k,4]),';'))
-  SMILES<-unlist(strsplit(as.character(rankpeaks[k,5]),';'))
-  matchscore<-unlist(strsplit(as.character(rankpeaks[k,6]),';'))
-  for (m in 1:length(formula)){
-    mzFin<-rankpeaks[k,1] #m/z
-    rtFin<-rankpeaks[k,2] #rt
-    IDFin<-samplelist[rankpeaks[k,3]] #Sample with Max Intensity
-    formulaFin<-formula[m] #formula
-    SMILESFin<-SMILES[m] #SMILES
-    scoreFin<-matchscore[m] #matchscore
-    ranktable<-rbind(ranktable,c(mzFin,rtFin,IDFin,formulaFin,SMILESFin,scoreFin))
-    }
-  
-  }
-  naindex<-which(is.na(ranktable[,1]))
-  ranktable<-ranktable[-naindex,]
-  names(ranktable)<-c("mz","rt","Sample with Max Intensity","Formula","SMILES","Match Score")
-  setwd(path.finaloutput)
-  write.table(ranktable,file=paste0(foldername,"_minusblank_final.csv"),sep=',',row.names = FALSE)
-}
 
 ###Step 7: Use Library to find matches in Target and Decoy databases------------------------------------------------------------
 
@@ -479,6 +382,104 @@ write.table(mylib.output3,file=target.file,sep=',',row.names = FALSE)
 #Uniqueid<-UniqueID(output)
 #write.table(Uniqueid,file=uniqueresults.file,sep=',',row.names = FALSE)
 #write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
+
+
+
+###Step 11.1: Extraction Blanks Subtraction ##########
+sublist<-NULL
+sublist<-list()
+for(n in 1:4){
+  DIAset<-n
+  if(DIAset==1){foldername<-"Neg100300_ranked"
+  }else if(DIAset==2){foldername<-"Neg300500_ranked"
+  }else if(DIAset==3){foldername<-"Neg500700_ranked"
+  }else if(DIAset==4){foldername<-"Neg700900_ranked"}
+  
+  path.ranked<-paste0(path,"/analysis/jeans analysis/ranked/",foldername)
+  setwd(path.ranked)
+  mainpeaks<-read.table(list.files()[2],header=TRUE,sep=',',fill=TRUE)
+  
+  xblankdata<-NULL
+  xblankdata<-list()
+  setwd(path.calblanks)
+  msfiles<-list.files(pattern="\\.mzXML$", ignore.case=TRUE)
+  first<-(DIAset*2-1)
+  last<-(DIAset*2)
+  for (i in first:last){
+    xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
+    xblankdata[[i]]<-xdata
+  }
+  
+  subpeaks<-mainpeaks
+  indexsub<-NULL
+  for (j in 1:length(mainpeaks[,1])){
+    
+    mzmin<-(mainpeaks[j,1])-(mainpeaks[j,1]*(2.5*10^-6))
+    mzmax<-max(mainpeaks[j,1])+(mainpeaks[j,1]*(2.5*10^-6))
+    rtmin<-min(mainpeaks[,2])*60
+    rtmax<-max(mainpeaks[,2])*60
+    
+    peaks1<-rawEIC(xblankdata[[first]],mzrange=cbind(mzmin,mzmax),rtrange=cbind(rtmin,rtmax))
+    peaks2<-rawEIC(xblankdata[[last]],mzrange=cbind(mzmin,mzmax),rtrange=cbind(rtmin,rtmax))
+    peaks3<-mean(c(max(peaks1$intensity),max(peaks2$intensity)))
+    
+    
+    for (k in 3:11){
+      subpeaks[j,k]<-mainpeaks[j,k]-peaks3
+      if(subpeaks[j,k]<Intensitycut){subpeaks[j,k]<-100}
+    }
+    if (max(subpeaks[j,3:11])>101){indexsub<-c(indexsub,j)}
+  }
+  subpeaks<-subpeaks[indexsub,]
+  
+  setwd(path.finaloutput)
+  write.table(subpeaks,file=paste0(foldername,"_minusblank_notfiltered.csv"),sep=',',row.names = FALSE)
+  sublist[[n]]<-subpeaks
+}
+
+###Step 11.2: Optional final output -> Peaks with scores only, all matches expanded#####
+
+setwd(path.caldata)
+samplelist<-list.files()
+rankpeaks<-NULL
+ranklist<-NULL
+for(i in 1:length(sublist)){
+  DIAset<-i
+  if(DIAset==1){foldername<-"Neg100300_ranked"
+  }else if(DIAset==2){foldername<-"Neg300500_ranked"
+  }else if(DIAset==3){foldername<-"Neg500700_ranked"
+  }else if(DIAset==4){foldername<-"Neg700900_ranked"}
+  
+  ranktemp<-sublist[[i]]
+  rankpeaks<-ranktemp[,c(1,2,12,13,17,24)]
+  expandindex<-NULL
+  for(j in 1:length(rankpeaks[,6])){
+    if(rankpeaks[j,6]==""){rankpeaks[j,6]<-0}
+    if(rankpeaks[j,6]!=0){expandindex<-c(expandindex,j)}
+  }
+  rankpeaks<-rankpeaks[expandindex,]
+  ranktable<-data.frame(matrix(data=NA,nrow=1,ncol=6,dimnames=NULL))
+  for (k in 1:length(rankpeaks[,1])){
+    formula<-unlist(strsplit(as.character(rankpeaks[k,4]),';'))
+    SMILES<-unlist(strsplit(as.character(rankpeaks[k,5]),';'))
+    matchscore<-unlist(strsplit(as.character(rankpeaks[k,6]),';'))
+    for (m in 1:length(formula)){
+      mzFin<-rankpeaks[k,1] #m/z
+      rtFin<-rankpeaks[k,2] #rt
+      IDFin<-samplelist[rankpeaks[k,3]] #Sample with Max Intensity
+      formulaFin<-formula[m] #formula
+      SMILESFin<-SMILES[m] #SMILES
+      scoreFin<-matchscore[m] #matchscore
+      ranktable<-rbind(ranktable,c(mzFin,rtFin,IDFin,formulaFin,SMILESFin,scoreFin))
+    }
+    
+  }
+  naindex<-which(is.na(ranktable[,1]))
+  ranktable<-ranktable[-naindex,]
+  names(ranktable)<-c("mz","rt","Sample with Max Intensity","Formula","SMILES","Match Score")
+  setwd(path.finaloutput)
+  write.table(ranktable,file=paste0(foldername,"_minusblank_final.csv"),sep=',',row.names = FALSE)
+}
 
 
 ###Extra: List of all printed counters---------------------------------------------------------------------------------

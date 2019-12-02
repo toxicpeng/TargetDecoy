@@ -248,7 +248,7 @@ for (i in 1:length(primary.ID)){
 if (polarity==1){
   Adducts<-c('[M+H]+','[M+H-H2O]+','[M+NH4]+','[M+Na]+','[M+CH3OH+H]+')
   MW.adducts<-c(1.007825,-17.00274,18.03437,22.98977,33.03404)
-  Adducts.Find<-AdductsFind(Library.new,xcaldata,MW.adducts,10^(-5))
+  Adducts.Find<-AdductsFind(Library.new,xcaldata,MW.adducts,10^(-5),Adducts)
 }
 
 if (polarity==-1){
