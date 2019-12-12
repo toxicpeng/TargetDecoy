@@ -61,19 +61,19 @@ Intensitycut<-10^5###intensity cutoff to pick the peaks for matching
 ###Step 2: Modify for each run as necessary:------------------------------------------------------------------------------------------
 
 ###File paths/names which must be changed with every sample set
-path.rawdata<-paste(path,"/data/20191114/Neg300500", sep="")#raw data
-path.caldata<-paste(path,"/caldata/20191114 jeans/Neg300500", sep="")#calibrated data
+path.rawdata<-paste(path,"/data/20191114/Neg100300", sep="")#raw data
+path.caldata<-paste(path,"/caldata/20191114 jeans/Neg100300", sep="")#calibrated data
 path.finaloutput<-paste(path,"/analysis/jeans analysis/20191114", sep="")#folder for ID csv files
 
-path.calblanks<-paste(path,"/caldata/20191114 jeans_blanks/Neg300500", sep="")#calibrated data
+path.calblanks<-paste(path,"/caldata/20191114 jeans_blanks/Neg100300", sep="")#calibrated data
 
-target.file<-"Target_Neg300500_ranked.csv" #output for Sirius Target matches with weighted scores
+target.file<-"Target_Pos700900_ranked.csv" #output for Sirius Target matches with weighted scores
 #decoy.file<-"Decoy_Neg700900_nort.csv" #output for Sirius Decoy matches with weighted scores
 #RT.ID.file<-"FinalID_Neg700900_nort.csv" #output for Target matches with final scores (including RT prediction)
 #uniqueresults.file<-'UniqueID_Neg700900_nort.csv' #output for final match list (duplicates removed)
 #allresults.file<-'AllID_Neg700900_nort.csv' #output for all Library data
 
-polarity<--1 ##if neg -1, if pos 1
+polarity<-1 ##if neg -1, if pos 1
 
 ###Step 3: Import Lockmasses and xcmsRaw files into memory-----------------------------------------------------------------------------
 
@@ -386,26 +386,32 @@ write.table(mylib.output3,file=target.file,sep=',',row.names = FALSE)
 
 
 ###Step 11.1: Extraction Blanks Subtraction ##########
-sublist<-NULL
-sublist<-list()
-for(n in 1:4){
-  DIAset<-n
-  if(DIAset==1){foldername<-"Neg100300_ranked"
-  }else if(DIAset==2){foldername<-"Neg300500_ranked"
-  }else if(DIAset==3){foldername<-"Neg500700_ranked"
-  }else if(DIAset==4){foldername<-"Neg700900_ranked"}
+
+#sublist<-NULL
+#sublist<-list()
+#for(n in 1:4){
+#  DIAset<-n
+#  if(DIAset==1){foldername<-"Neg100300_ranked"
+#  }else if(DIAset==2){foldername<-"Neg300500_ranked"
+#  }else if(DIAset==3){foldername<-"Neg500700_ranked"
+#  }else if(DIAset==4){foldername<-"Neg700900_ranked"}
+  path.finaloutput<-paste(path,"/analysis/jeans analysis/20191114/blank_subtracted", sep="")#folder for ID csv files
+  foldername<-"Pos700900"
+  path.caldata<-paste(path,"/caldata/20191114 jeans/Pos700900", sep="")#calibrated data
+  path.calblanks<-paste(path,"/caldata/20191114 jeans_blanks/Pos700900", sep="")#calibrated data
   
-  path.ranked<-paste0(path,"/analysis/jeans analysis/ranked/",foldername)
+  path.ranked<-paste0(path,"/analysis/jeans analysis/20191114/ranked")
+  filenum<-8
   setwd(path.ranked)
-  mainpeaks<-read.table(list.files()[2],header=TRUE,sep=',',fill=TRUE)
+  mainpeaks<-read.table(list.files()[filenum],header=TRUE,sep=',',fill=TRUE) 
   
   xblankdata<-NULL
   xblankdata<-list()
   setwd(path.calblanks)
   msfiles<-list.files(pattern="\\.mzXML$", ignore.case=TRUE)
-  first<-(DIAset*2-1)
-  last<-(DIAset*2)
-  for (i in first:last){
+#  first<-(DIAset*2-1)
+#  last<-(DIAset*2)
+  for (i in 1:2){
     xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
     xblankdata[[i]]<-xdata
   }
@@ -434,8 +440,8 @@ for(n in 1:4){
   
   setwd(path.finaloutput)
   write.table(subpeaks,file=paste0(foldername,"_minusblank_notfiltered.csv"),sep=',',row.names = FALSE)
-  sublist[[n]]<-subpeaks
-}
+#  sublist[[n]]<-subpeaks
+#}
 
 ###Step 11.2: Optional final output -> Peaks with scores only, all matches expanded#####
 
@@ -443,43 +449,54 @@ setwd(path.caldata)
 samplelist<-list.files()
 rankpeaks<-NULL
 ranklist<-NULL
-for(i in 1:length(sublist)){
-  DIAset<-i
-  if(DIAset==1){foldername<-"Neg100300_ranked"
-  }else if(DIAset==2){foldername<-"Neg300500_ranked"
-  }else if(DIAset==3){foldername<-"Neg500700_ranked"
-  }else if(DIAset==4){foldername<-"Neg700900_ranked"}
+#for(i in 1:length(sublist)){
+#  DIAset<-i
+#  if(DIAset==1){foldername<-"Neg100300_ranked"
+ # }else if(DIAset==2){foldername<-"Neg300500_ranked"
+#  }else if(DIAset==3){foldername<-"Neg500700_ranked"
+#  }else if(DIAset==4){foldername<-"Neg700900_ranked"}
   
-  ranktemp<-sublist[[i]]
-  rankpeaks<-ranktemp[,c(1,2,12,13,17,24)]
+#  ranktemp<-sublist[[i]]
+  ranktemp<-subpeaks
+  rankpeaks<-ranktemp[,c(1:12,14,18,26)]
   expandindex<-NULL
-  for(j in 1:length(rankpeaks[,6])){
-    if(rankpeaks[j,6]==""){rankpeaks[j,6]<-0}
-    if(rankpeaks[j,6]!=0){expandindex<-c(expandindex,j)}
+  for(j in 1:length(rankpeaks[,15])){
+    if(rankpeaks[j,15]==""||rankpeaks[j,15]=="NA"){rankpeaks[j,15]<-0}
+    if(rankpeaks[j,15]!=0){expandindex<-c(expandindex,j)}
   }
   rankpeaks<-rankpeaks[expandindex,]
-  ranktable<-data.frame(matrix(data=NA,nrow=1,ncol=6,dimnames=NULL))
+  ranktable<-data.frame(matrix(data=NA,nrow=1,ncol=15,dimnames=NULL))
   for (k in 1:length(rankpeaks[,1])){
-    formula<-unlist(strsplit(as.character(rankpeaks[k,4]),';'))
-    SMILES<-unlist(strsplit(as.character(rankpeaks[k,5]),';'))
-    matchscore<-unlist(strsplit(as.character(rankpeaks[k,6]),';'))
+    formula<-unlist(strsplit(as.character(rankpeaks[k,13]),';'))
+    SMILES<-unlist(strsplit(as.character(rankpeaks[k,14]),';'))
+    matchscore<-unlist(strsplit(as.character(rankpeaks[k,15]),';'))
     for (m in 1:length(formula)){
       mzFin<-rankpeaks[k,1] #m/z
       rtFin<-rankpeaks[k,2] #rt
-      IDFin<-samplelist[rankpeaks[k,3]] #Sample with Max Intensity
+#      IDFin<-samplelist[rankpeaks[k,3]] #Sample with Max Intensity
+      S1<-rankpeaks[k,3]
+      S2<-rankpeaks[k,4]
+      S3<-rankpeaks[k,5]
+      S4<-rankpeaks[k,6]
+      S5<-rankpeaks[k,7]
+      S6<-rankpeaks[k,8]
+      S7<-rankpeaks[k,9]
+      S8<-rankpeaks[k,10]
+      S9<-rankpeaks[k,11]
+      S10<-rankpeaks[k,12]
       formulaFin<-formula[m] #formula
       SMILESFin<-SMILES[m] #SMILES
       scoreFin<-matchscore[m] #matchscore
-      ranktable<-rbind(ranktable,c(mzFin,rtFin,IDFin,formulaFin,SMILESFin,scoreFin))
+      ranktable<-rbind(ranktable,c(mzFin,rtFin,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,formulaFin,SMILESFin,scoreFin))
     }
     
   }
   naindex<-which(is.na(ranktable[,1]))
   ranktable<-ranktable[-naindex,]
-  names(ranktable)<-c("mz","rt","Sample with Max Intensity","Formula","SMILES","Match Score")
+  names(ranktable)<-names(rankpeaks)
   setwd(path.finaloutput)
   write.table(ranktable,file=paste0(foldername,"_minusblank_final.csv"),sep=',',row.names = FALSE)
-}
+#}
 
 
 ###Extra: List of all printed counters---------------------------------------------------------------------------------

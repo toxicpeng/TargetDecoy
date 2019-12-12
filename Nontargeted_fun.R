@@ -2203,7 +2203,7 @@ fillpeak<-function(xset.input,ppm,btw,xcallist){
   maxrt<-max(xset.input@peaks[,4])
   if (length(idsave)>0){
     for (k in 1:length(unlist(phenoData(xset.input)))){
-      if(k%%1000==1){print(c('filling peakID...',k,'of...',length(unlist(phenoData(xset.input)))))}
+      if(k%%1000==0){print(c('filling peakID...',k,'of...',length(unlist(phenoData(xset.input)))))}
       index<-which(idsave[,2]==k)
       if (length(index)==0){next}
       xraw<-xcallist[[k]]
