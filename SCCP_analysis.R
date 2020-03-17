@@ -97,11 +97,106 @@ for(i in 1:length(key)){
   startline<-key[i]
   ISarea<-CPareas[startline,4]
   sampleCPs<-a
-  
-  
-  
-  
 }
 
 
 
+#####RF-Cl linear estimation for all congeners (instead of mixture)#####
+
+path_data<-"E:/Steven/Target Decoy/analysis/products analysis/reference compounds analysis"
+setwd(path_data)
+CPknown<-read.table("SCCP linear estimation values.csv",header=TRUE,sep=',',fill=TRUE)
+CongAreas<-CPknown[,2] #Congener Peak Areas (normalized to IS)
+CongCl<-CPknown[,3] #Congener mass% Cl (based on formulas and average molecular mass)
+Components<-nrow(CPknown)
+
+#MixConc<-0.1 #Concentration of the technical mixture used to collect this data (ppm)
+MixCl<-0.515 #Manufacturer %Cl of the technical mixture
+LS<-MixCl #Cl Concentration in the technical mixture (ppm)
+
+CongConcLow<-0.00001 #Lowest expected concentration (in ppm) of individual congeners
+CongConcHigh<-MixConc #Highest possible concentration (in ppm) of individual congeners (not possible to be higher than the concentration of the technical mixture)
+#yIntLow<-(min(CongAreas[CongAreas>0]))/CongConcHigh #Lowest possible y-intercept, based on input data
+#yIntHigh<-(max(CongAreas))/CongConcLow #Highest possible y-intercept based on input data
+yIntHigh<-1000
+yIntLow<--1000
+Rounding<-0.1 #Rounding off for the purposes of faster testing
+yIntLow<-round(yIntLow, digits=-log10(Rounding))
+yIntHigh<-round(yIntHigh, digits=-log10(Rounding))
+
+xLow<-min(CongCl)
+xHigh<-max(CongCl)
+SlopeLow<-0
+#SlopeHigh<-(yIntHigh-yIntLow)/(xHigh-xLow)
+SlopeHigh<-2000
+SlopeHigh<-round(SlopeHigh, digits=-log10(Rounding))
+
+PassFactor<-1.00001 #A set of parameters will have passed the test if RS=LS within a factor of [PassFactor]
+PassList<-matrix(data=NA,nrow=0,ncol=4)
+digits<-floor(log10(SlopeHigh/Rounding)) #Order of magnitude of the number of iterations of the main for-loop (for print counter purposes; see below)
+printcounter<-10^(digits-1) #Order of magnitude for which the print counter will return <1000 values (see below)
+print(c(SlopeHigh/Rounding,printcounter))
+
+start_time<-Sys.time()
+for(Slope in seq(SlopeLow,SlopeHigh,by=Rounding)){
+  for(yInt in seq(yIntLow,yIntHigh,by=Rounding)){
+    if(yInt==0){next}
+    RStop<-0
+    RSbot<-0
+    RS<-0
+    CongenersTop<-NULL
+    CongenersBot<-NULL
+    for(k in 1:Components){
+      if(CongAreas[k]==0){next}
+      CongenersTop<-c(CongenersTop,((CongAreas[k]*CongCl[k])/(Slope*CongCl[k]+yInt)))
+    }
+    if(length(which(CongenersTop<0))>0){next}
+    for(m in 1:Components){
+      if(CongAreas[m]==0){next}
+      CongenersBot<-c(CongenersBot,(CongAreas[m]/(Slope*CongCl[m]+yInt)))
+    }
+    if(length(which(CongenersBot<0))>0){next}
+    if(RStop==0 | RSbot==0){next}
+    RS<-RStop/RSbot
+    if(RS>(LS/PassFactor) & RS<(LS*PassFactor)){
+      ppmAcc<-abs(((RS-LS)/LS)*(10^6))
+      PassList<-rbind(PassList,c(Slope,yInt,RS,ppmAcc))
+    }
+  }
+  if(Slope%%printcounter==0 & Slope>0){
+    time_running<-difftime(Sys.time(),start_time,units="mins")
+    time_running<-as.numeric(time_running)
+    fraction_complete<-round((Slope/SlopeHigh),digits=10)
+    total_time<-time_running/fraction_complete
+    time_remaining<-round((total_time-time_running),digits=1)
+    print(c("Time remaining =",time_remaining,"minutes"))
+    }
+}
+print(c("number of results =",nrow(PassList)))
+BestRow<-which.min(PassList[,4])
+print(PassList[BestRow,])
+
+  #For a single run of 51.5% Cl
+#For Rounding==100 and PassFactor==10, nrow(PassList)==6
+#For Rounding==10 and PassFactor==10, nrow(PassList)==227
+#For Rounding==10 and PassFactor==5, nrow(PassList)==70
+#For Rounding==10 and PassFactor==2, nrow(PassList)==15
+#For Rounding==1 and PassFactor==2, nrow(PassList)==771
+#For Rounding==1 and PassFactor==1.1, nrow(PassList)==166
+  #At this point, upper bounds for Slope and y-Int were both set to 100, based on max values from earlier tests
+#For Rounding==0.1 and PassFactor==1.1, nrow(PassList)==12921, min ppm = 31.6
+#For Rounding==0.1 and PassFactor==1.01, nrow(PassList)==2280, min ppm = 12.3
+#For Rounding==0.1 and PassFactor==1.001, nrow(PassList)==257, min ppm = 4.08
+#For Rounding==0.01 and PassFactor==1.001, nrow(PassList)==24998, min ppm = 0.0650
+#For Rounding==0.01 and PassFactor==1.0001, nrow(PassList)==2562, min ppm = 0.0650
+#For Rounding==0.01 and PassFactor==1.00001, nrow(PassList)==285, min ppm = 0.0650
+  #At this point, the rest of the SCCP values (10 runs total of 51.5% Cl) were added to the imported data list
+  #Upper bounds for Slope and y-Int were reset to calculated values
+#For Rounding==10 and PassFactor==2, nrow(PassList)==628, min ppm = 452
+  #At this point, lower estimate of congener concentration was lowered from 0.1 ppb to 0.01 ppb
+#For Rounding==10 and PassFactor==1.1, nrow(PassList)==130, min ppm = 452
+#For Rounding==1 and PassFactor==1.1, nrow(PassList)==10517, min ppm = 12.9
+#For Rounding==0.1 and PassFactor==1.1, nrow(PassList)==923125, min ppm = 0.133
+#For Rounding==0.1 and PassFactor==1.001, nrow(PassList)==20176, min ppm = 0.0699
+#For Rounding==0.1 and PassFactor==1.00001, nrow(PassList)==218, min ppm = 0.0699
+#For Rounding==0.1 and PassFactor==1.000001, nrow(PassList)==, min ppm = 

@@ -23,6 +23,8 @@
   #deletes any masses from the list which fall outside the current range for MS2 peaks. 
   #I don't remember which function that was in though...
 
+#Note to self 4: Ask Hui why he decided to build his own "fillpeak" function rather than use the one provided by the xcms package ("fillPeaks")
+
 
 ###Step 1: Run Once per Sample Set----------------------------------------------------------------------------------------
 

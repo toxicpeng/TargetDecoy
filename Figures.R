@@ -1,6 +1,4 @@
-#-----------------------------
-#ggplot histgram
-#-----------------------------
+####ggplot histogram####
 library(ggplot2)
 library(plyr)
 df<-data.frame(group=c(rep('target',length(Targetscore)),rep('decoy',length(Decoyscore))),cor=c(Targetscore,Decoyscore))
@@ -16,7 +14,7 @@ ggplot(df, aes(x=cor, color=group, fill=group)) +
   xlim(-5,5)+
   theme_classic()
 
-######single############
+###single###
 ggplot(df, aes(x=cor)) + 
   geom_histogram(aes(y=..density..), colour="black", fill="white")+
   geom_density(alpha=.2, fill="#FF6666") 
@@ -128,21 +126,24 @@ sdf<-smiles2sdf(smiles)
 plot(sdf)
 
 
-###Chlorinated Azo Dyes Heatmap with Dendrogram###
+####Chlorinated Azo Dyes Heatmap with Dendrogram####
 
 library(ggplot2)
 library(tidyr)
 library(ggdendro)
 library(reshape2)
+library(grid)
+library(corrplot)
+library(Hmisc)
 
-chlor<-read.csv("C:/Users/skutarna/Google Drive/NTA/TargetDecoy/ClAzoDyes.csv", header=TRUE)
+chlor<-read.csv("E:/Steven/Target Decoy/analysis/dust analysis/DustCompoundsUnique.csv", header=TRUE)
 
 # Scale data
-chlor.scaled <- chlor
+chlor.scaled <- chlor[,c(1:27,43,44,47,48)]
 chlor.scaled[, c(3:26)] <- scale(chlor.scaled[, 3:26])
 
 # Run clustering
-chlor.matrix <- as.matrix(chlor.scaled[, -c(1:3)])
+chlor.matrix <- as.matrix(chlor.scaled[, c(3:26)])
 rownames(chlor.matrix) <- chlor.scaled$CpdID
 chlor.dendro <- as.dendrogram(hclust(d = dist(x = chlor.matrix)))
 
@@ -159,23 +160,34 @@ chlor.long$CpdID <- factor(x = chlor.long$CpdID,
                                levels = chlor.scaled$CpdID[chlor.order], 
                                ordered = TRUE)
 
-# Heatmap
+##Heatmap
 heatmap.plot <- ggplot(data=chlor.long, mapping=aes(x=Sample, y=CpdID, fill=Intensity)) +
-      geom_tile()+
+      geom_raster()+
       xlab(label="Sample")+
-      scale_fill_gradient(name="Intensity", low="white", high="black")+
+      scale_fill_gradient(name="Intensity", low="yellow", high="blue")+
       theme(axis.text.y = element_blank(),
         axis.title.y = element_blank(),
         axis.ticks.y = element_blank(),
         legend.position = "top")
 
-# All together
-grid.newpage()
-print(heatmap.plot, vp = viewport(x = 0.4, y = 0.5, width = 0.8, height = 1.0))
-print(dendro.plot, vp = viewport(x = 0.90, y = 0.455, width = 0.2, height = 0.91))
+##All together
+#grid.newpage()
+#print(heatmap.plot, vp = viewport(x = 0.4, y = 0.5, width = 0.8, height = 1.0))
+#print(dendro.plot, vp = viewport(x = 0.90, y = 0.455, width = 0.2, height = 0.91))
+
+##Alternate (much faster) option for plotting correlation score heatmap
+chlor_rows<-which(chlor.scaled[,30]==TRUE)
+chlor.matrix <- as.matrix(chlor.scaled[chlor_rows, c(3:26)])
+rownames(chlor.matrix) <- chlor.scaled[chlor_rows,31]
+#melt_chlor<-melt(chlor.matrix)
+#cast_chlor<-acast(melt_chlor, Var2~Var1)
+#chlor.cormatrix<-rcorr(cast_chlor)
+chlor.cormatrix<-rcorr(chlor.matrix)
+colour1 <- colorRampPalette(c("red","white","blue"))
+corrplot(chlor.cormatrix$r, method = "square", type = "full", order = "hclust" ,col = colour1(200), tl.col = "black", tl.srt = 45, p.mat = chlor.cormatrix$P, sig.level = 0.05, insig = "blank", addrect = 5)
 
 
-###Faceted Bar Graph for All Chlorine-Containing Compounds###
+####Faceted Bar Graph for All Chlorine-Containing Compounds####
 
 library(ggplot2)
 library(tidyr)
@@ -199,7 +211,7 @@ print(grid.plot)
 
 
 
-###Chlorinated Azo Dyes by Colour and Dye Type###
+####Chlorinated Azo Dyes by Colour and Dye Type####
 
 library(ggplot2)
 library(tidyr)
@@ -218,7 +230,7 @@ color.plot <- ggplot(data=cldyes, mapping=aes(x=Colour, y=avg))+
 print(color.plot)
 
 
-###Lockmass Calibration - Searching Space Reduction Figure###
+####Lockmass Calibration - Searching Space Reduction Figure####
 
 library(ggplot2)
 library(ggthemes)
@@ -258,7 +270,7 @@ print(formula.plot)
 
 
 
-###Reference Compounds Figure - Before and After Calibration###
+####Reference Compounds Figure - Before and After Calibration####
 
 library(ggplot2)
 
@@ -338,5 +350,7 @@ for (m in 1:length(msfilescal)){
 }
 setwd("E:/Steven/Target Decoy/products analysis")
 write.table(reflistcal, file="azoref in caldata.csv", sep = ',',row.names=FALSE,col.names=c("mz","ppm"))
+
+
 
 
