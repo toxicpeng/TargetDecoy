@@ -61,15 +61,15 @@ Intensitycut<-10^5###intensity cutoff to pick the peaks for matching
 ###Step 2: Modify for each run as necessary:------------------------------------------------------------------------------------------
 
 ###File paths/names which must be changed with every sample set
-path.rawdata<-paste(path,"/data/housedust", sep="")#raw data
-path.caldata<-paste(path,"/caldata/housedust", sep="")#calibrated data
+path.rawdata<-paste(path,"/data/Hui_20151207_dust/rawdata/400-505", sep="")#raw data
+path.caldata<-paste(path,"/data/Hui_20151207_dust/caldata/400-505", sep="")#calibrated data
 path.finaloutput<-paste(path,"/analysis/dust analysis", sep="")#folder for ID csv files
 
-target.file<-"Allmatches_dust_final.csv" #output for Sirius Target matches with weighted scores
+target.file<-"Allmatches_dust_final_Hui20151207.csv" #output for Sirius Target matches with weighted scores
 #decoy.file<-"Decoy_Neg700900_nort.csv" #output for Sirius Decoy matches with weighted scores
 #RT.ID.file<-"FinalID_Neg700900_nort.csv" #output for Target matches with final scores (including RT prediction)
-uniqueresults.file<-'Allmatches_dust_finalUnique.csv' #output for final match list (duplicates removed)
-allresults.file<-'Allmatches_dust.csv' #output for all Library data
+uniqueresults.file<-'Allmatches_dust__Unique_Hui20151207.csv' #output for final match list (duplicates removed)
+allresults.file<-'Allmatches_dust_Hui20151207.csv' #output for all Library data
 
 polarity<--1 ##if neg -1, if pos 1
 

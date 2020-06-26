@@ -642,9 +642,11 @@ MassCal<-function(xraw,LockMass,input,ppminput){
       calmz<-output[[1]]
       temp.fun<-output[[2]]
       xraw@env$mz[correctindex]<-calmz}
-    if(i%%10==0){print(i)}
+    if(i%%100==0){print(i)}
     }
-  return(xraw)}
+  return(xraw)
+  #return(temp.fun)
+  }
 
 #############function to smooth the mz across three data points############
 mzSmooth<-function(Library,rtwin,ppmwin,xcallist){
@@ -2890,7 +2892,7 @@ Score.RT<-function(Target,Database,RT.coeff){
       Tpsa<-c(Tpsa,get.tpsa(mol))
       predictRT<-RT.coeff[1]+LogP*RT.coeff[2]+Tpsa*RT.coeff[3]
       Diff.rt<-predictRT-Target$rt[i]
-      temp.score<-log(exp(-0.25*Diff.rt^2/SD.rt^2))
+      temp.score<-log(exp(-0.25*Diff.rt^2/SD.rt^2)) #log(exp(x))=x, so I don't understand why this combination is used here...
     }
     Target$rtscore[i]<-paste(temp.score,collapse=';')
     Target$allscore0[i]<-paste(temp+temp.score,collapse=';')

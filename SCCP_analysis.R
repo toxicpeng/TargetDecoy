@@ -103,39 +103,42 @@ for(i in 1:length(key)){
 
 #####RF-Cl linear estimation for all congeners (instead of mixture)#####
 
-path_data<-"E:/Steven/Target Decoy/analysis/products analysis/reference compounds analysis"
+path_data<-"C:/Users/Steven Desktop/Documents/MSc2/TargetDecoy/analysis/products analysis/reference compounds analysis"
 setwd(path_data)
 CPknown<-read.table("SCCP linear estimation values.csv",header=TRUE,sep=',',fill=TRUE)
 CongAreas<-CPknown[,2] #Congener Peak Areas (normalized to IS)
 CongCl<-CPknown[,3] #Congener mass% Cl (based on formulas and average molecular mass)
 Components<-nrow(CPknown)
 
-#MixConc<-0.1 #Concentration of the technical mixture used to collect this data (ppm)
+MixConc<-0.1 #Concentration of the technical mixture used to collect this data (ppm)
 MixCl<-0.515 #Manufacturer %Cl of the technical mixture
 LS<-MixCl #Cl Concentration in the technical mixture (ppm)
 
 CongConcLow<-0.00001 #Lowest expected concentration (in ppm) of individual congeners
 CongConcHigh<-MixConc #Highest possible concentration (in ppm) of individual congeners (not possible to be higher than the concentration of the technical mixture)
-#yIntLow<-(min(CongAreas[CongAreas>0]))/CongConcHigh #Lowest possible y-intercept, based on input data
-#yIntHigh<-(max(CongAreas))/CongConcLow #Highest possible y-intercept based on input data
-yIntHigh<-1000
-yIntLow<--1000
-Rounding<-0.1 #Rounding off for the purposes of faster testing
+xLow<-min(CongCl)
+xHigh<-max(CongCl)
+yLow<-(min(CongAreas))/CongConcHigh #Lowest possible y value, based on input data
+yHigh<-(max(CongAreas))/CongConcLow #Highest possible y value based on input data
+SlopeHigh<-(yHigh-yLow)/(xHigh-xLow) #delta y/delta x
+SlopeLow<-(yLow-yHigh)/(xHigh-xLow) #denominator stays the same (otherwise the signs would cancel out and slopeLow would equal slopeHigh)
+yIntLow<-yLow-(SlopeHigh*xHigh) #y=mx+b rearranges to b=y-mx. To get the lowest possible yInt, y must be small and mx must be large.
+yIntHigh<-yHigh-(SlopeLow*xHigh) #To get the highest possible yInt, y must be large and mx must be small (or a large negative). xHigh is used here because Slope Low will either be negative or zero.
+
+Rounding<-100 #Rounding off for the purposes of faster testing
+#SlopeLow<-round(SlopeLow, digits=-log10(Rounding))
+SlopeHigh<-round(SlopeHigh, digits=-log10(Rounding))
+SlopeLow<-100000
+#SlopeHigh<-100000
 yIntLow<-round(yIntLow, digits=-log10(Rounding))
 yIntHigh<-round(yIntHigh, digits=-log10(Rounding))
 
-xLow<-min(CongCl)
-xHigh<-max(CongCl)
-SlopeLow<-0
-#SlopeHigh<-(yIntHigh-yIntLow)/(xHigh-xLow)
-SlopeHigh<-2000
-SlopeHigh<-round(SlopeHigh, digits=-log10(Rounding))
-
-PassFactor<-1.00001 #A set of parameters will have passed the test if RS=LS within a factor of [PassFactor]
+runcount<-(SlopeHigh-SlopeLow)
+PassFactor<-1000 #A set of parameters will have passed the test if RS=LS within a factor of [PassFactor]
 PassList<-matrix(data=NA,nrow=0,ncol=4)
-digits<-floor(log10(SlopeHigh/Rounding)) #Order of magnitude of the number of iterations of the main for-loop (for print counter purposes; see below)
-printcounter<-10^(digits-1) #Order of magnitude for which the print counter will return <1000 values (see below)
-print(c(SlopeHigh/Rounding,printcounter))
+digits<-floor(log10(runcount)) #Order of magnitude of the number of iterations of the main for-loop (for print counter purposes; see below)
+printcounter<-10^(digits-2) #Order of magnitude for which the print counter will return <1000 values (see below)
+print(c(runcount,printcounter))
 
 start_time<-Sys.time()
 for(Slope in seq(SlopeLow,SlopeHigh,by=Rounding)){
@@ -163,18 +166,26 @@ for(Slope in seq(SlopeLow,SlopeHigh,by=Rounding)){
       PassList<-rbind(PassList,c(Slope,yInt,RS,ppmAcc))
     }
   }
-  if(Slope%%printcounter==0 & Slope>0){
-    time_running<-difftime(Sys.time(),start_time,units="mins")
-    time_running<-as.numeric(time_running)
-    fraction_complete<-round((Slope/SlopeHigh),digits=10)
-    total_time<-time_running/fraction_complete
-    time_remaining<-round((total_time-time_running),digits=1)
-    print(c("Time remaining =",time_remaining,"minutes"))
+  if(Slope==SlopeLow){print(c("First iteration complete"))}
+  if(Slope%%printcounter==0 & Slope>SlopeLow){
+    print(c("current slope =",Slope,"# of results so far=",nrow(PassList)))
+    timetogo(start_time,(Slope-SlopeLow),runcount)
     }
 }
 print(c("number of results =",nrow(PassList)))
 BestRow<-which.min(PassList[,4])
 print(PassList[BestRow,])
+
+#Function which uses the time passed between groups of for loop iterations to estimate the time remaining.
+#***Requires the following code to be run immediately before the 1st iteration of the for loop: [starttime variable]<-Sys.time()
+timetogo<-function(starttime,currentcount,totalcount){  #starttime = system time at the start of the for loop, currentcount = current for loop iteration, totalcount = total # of for loop iterations
+  time_running<-difftime(Sys.time(),starttime,units="mins") #Calculate the time difference in minutes between now and the start of the for loop
+  time_running<-as.numeric(time_running)
+  fraction_complete<-round((currentcount/totalcount),digits=10) #Determine what fraction of the total # of iterations has been completed to this point
+  total_time<-time_running/fraction_complete #Estimate the total runtime of the for loop based on how long it took to get to the current iteration
+  minutes_to_go<-round((total_time-time_running),digits=1) #The remaining runtime will be the difference between total runtime and time passed thus far
+  if(minutes_to_go>60){print(c("Time remaining =",round(minutes_to_go/60,digits=2),"hours"))}else{print(c("Time remaining =",minutes_to_go,"minutes"))}
+}
 
   #For a single run of 51.5% Cl
 #For Rounding==100 and PassFactor==10, nrow(PassList)==6
@@ -199,4 +210,4 @@ print(PassList[BestRow,])
 #For Rounding==0.1 and PassFactor==1.1, nrow(PassList)==923125, min ppm = 0.133
 #For Rounding==0.1 and PassFactor==1.001, nrow(PassList)==20176, min ppm = 0.0699
 #For Rounding==0.1 and PassFactor==1.00001, nrow(PassList)==218, min ppm = 0.0699
-#For Rounding==0.1 and PassFactor==1.000001, nrow(PassList)==, min ppm = 
+  #New upper and lower bounds calculated for Slope and yInt
