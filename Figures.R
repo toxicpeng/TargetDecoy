@@ -366,7 +366,7 @@ indexCl373<-which(dyedata$Cl373<1000000)
 dyedata373<-dyedata[-c(indexDB373,indexCl373),2:3]
 dyedata373<-log10(dyedata373)
 
-trendline373<-lm(dyedata373$Cl373~dyedata373$DB373, data=dyedata373)
+trendline373<-lm(dyedata373$Cl373~dyedata373$DB373, data=dyedata373) #Can use 'summary.lm()' after this line to obtain R^2 and p-value
 confribbon<-predict(trendline373,interval = "confidence", level=0.95)
 trendline373<-predict(trendline373, level=0.95)
 
@@ -393,7 +393,7 @@ indexCl93<-which(dyedata$Cl93<1000000)
 dyedata93<-dyedata[-c(indexDV93,indexCl93),4:5]
 dyedata93<-log10(dyedata93)
 
-trendline93<-lm(dyedata93$Cl93~dyedata93$DV93, data=dyedata93)
+trendline93<-lm(dyedata93$Cl93~dyedata93$DV93, data=dyedata93) #Can use 'summary.lm()' after this line to obtain R^2 and p-value
 confribbon<-predict(trendline93,interval = "confidence", level=0.95)
 trendline93<-predict(trendline93, level=0.95)
 
@@ -420,7 +420,7 @@ indexCDNA<-which(dyedata$CDNA<100000)
 dyedataDNA<-dyedata[-c(indexBDNA,indexCDNA),6:7]
 dyedataDNA<-log10(dyedataDNA)
 
-trendlineDNA<-lm(dyedataDNA$CDNA~dyedataDNA$BDNA, data=dyedataDNA)
+trendlineDNA<-lm(dyedataDNA$CDNA~dyedataDNA$BDNA, data=dyedataDNA) #Can use 'summary.lm()' after this line to obtain R^2 and p-value
 confribbon<-predict(trendlineDNA,interval = "confidence", level=0.95)
 trendlineDNA<-predict(trendlineDNA, level=0.95)
 
