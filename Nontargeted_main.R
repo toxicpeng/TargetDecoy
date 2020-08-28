@@ -90,7 +90,6 @@ xrawdata<-NULL
 xrawdata<-list()
 setwd(path.rawdata)
 msfiles<-list.files(pattern="\\.mzXML$", ignore.case=TRUE)
-msfiles<-msfiles[505:602]
 for (i in 1:length(msfiles)){
   xdata<-xcmsRaw(msfiles[i],includeMSn=TRUE)
   xrawdata[i]<-xdata
@@ -307,7 +306,7 @@ mylib.Target<-DatabaseSearching(cutoff,polarity,Database,mwoffset,xcaldata)
 #-----------------------]
 xraw<-xrawdata[[3]]
 precursor<-preclist(xraw)
-weightK<-c(1,1,1,0.8,0.6,1)#weight for MS1, ms2, ionmode, neutral, characteristic, and adducts, rt
+weightK<-c(1,1,1,0.8,0.6,1)#weight for MS1, ms2, ionmode, neutral, characteristic, and adducts
 #build MS files
 setwd(path.siriusTarget)
 Sirius.build(mylib.Target,Cal.Frag,IsotopeData)

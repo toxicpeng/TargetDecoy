@@ -126,7 +126,7 @@ sdf<-smiles2sdf(smiles)
 plot(sdf)
 
 
-####Chlorinated Azo Dyes Heatmap with Dendrogram####
+####Chlorinated Compounds Heatmap with Dendrogram####
 
 library(ggplot2)
 library(tidyr)
@@ -151,7 +151,7 @@ chlor.dendro <- as.dendrogram(hclust(d = dist(x = chlor.matrix)))
 dendro.plot <- ggdendrogram(data = chlor.dendro, rotate = TRUE)+
             theme(axis.text.x = element_blank())
 
-# Data reordering
+# Data reordering♣
 chlor.long <- gather(data = chlor.scaled, key = Sample, value = Intensity, -c(1:2), -c(27:33))
 # Extract the order of the tips in the dendrogram
 chlor.order <- order.dendrogram(chlor.dendro)
@@ -182,7 +182,7 @@ chlor.scaled[, c(3:26)] <- scale(chlor.scaled[, 3:26])
 
 chlor<-read.csv("C:/Users/Steven Desktop/Documents/MSc2/TargetDecoy/analysis/dust analysis/ChlorAllTransposed.csv", header=TRUE)
 
-chlor.matrix <- as.matrix(chlor[,2:43])
+chlor.matrix <- as.matrix(chlor[,2:40])
 rownames(chlor.matrix) <- chlor[,1]
 #melt_chlor<-melt(chlor.matrix)
 #cast_chlor<-acast(melt_chlor, Var2~Var1)
@@ -219,7 +219,7 @@ library(tidyr)
 library(stringr)
 
 
-dustdata<-read.csv("C:/Users/Steven Desktop/Documents/MSc2/TargetDecoy/analysis/dust analysis/DustCompoundsUnique.csv", header=TRUE)
+dustdata<-read.csv("C:/Users/Steven Desktop/Google Drive/MSc 3/Algorithm Paper/SICompounds_Log.csv", header=TRUE)
 
 ####Attempt at calculating my own boxplot values (Not currently used)####
 dustcpds<-dustdata[,c(43:46,48,51)]
@@ -245,7 +245,7 @@ for(i in 1:nrow(dustvalues)){
 dustcpds$AvgIntNew<-log10(dustcpds$AvgIntNew)
 dustcpds<-dustcpds[order(-dustcpds$AvgIntNew),]
 CpdOrder<-seq(from=1, to=nrow(dustcpds), by=1)
-####Actual Code####
+####Actual Boxplot Code####
 
 # Is a grouping available?
 # (Will return TRUE if an explicit group or a discrete variable with only one
@@ -260,25 +260,26 @@ has_groups <- function(data) {
 }
 
 
-dustboxdata<-dustdata[,c(3:26,43:44,46:49,52)]
+dustboxdata<-dustdata[,c(3:27,29:31,33)]
 dustboxdata<-dustboxdata %>%
-  gather(key="Sample",value="Intensity",-Formula,-MedInt,-Name,-Class, -ClAzoDye, -CpdID,-IUPAC)
+  gather(key="Sample",value="Intensity",-Formula,-MedInt,-Name,-Class, -MedID)
 zeroindex<-which(dustboxdata$Intensity==0)
 dustboxdata<-dustboxdata[-zeroindex,]
 dustboxdata$Formula<-as.character(dustboxdata$Formula)
 
 ##Boxplot of all dust compounds, ordered by median intensity
-dustplotall<-ggplot(data = dustboxdata, mapping=aes(x=CpdID, y=Intensity, group=CpdID))+
+dustplotall<-ggplot(data = dustboxdata, mapping=aes(x=MedID, y=Intensity, group=MedID))+
   geom_boxplot(size=0.1, outlier.size=0.1)+
-  scale_y_log10(breaks=trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x)))+
-  scale_x_continuous(breaks=seq(from = 0, to = 600, by = 100),limits=c(0,600))+
+  #scale_y_log10(breaks=trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x)))+
+  scale_y_continuous(breaks = c(4,5,6,7,8), labels = c(expression(10^4),expression(10^5),expression(10^6),expression(10^7),expression(10^8)))+
+  scale_x_continuous(breaks=seq(from = 0, to = 450, by = 50),limits=c(0,450))+
   theme_classic()+
   xlab("Compound Rank by Median Intensity")+
   ylab("Signal Intensity")
 print(dustplotall)
 
 ##Exact same graph as above, but in Tufte style
-dustplotall<-ggplot(data = dustboxdata, mapping=aes(x=CpdID, y=Intensity, group=CpdID))+
+dustplotall<-ggplot(data = dustboxdata, mapping=aes(x=MedID, y=Intensity, group=MedID))+
   theme_classic()+
   geom_tufteboxplot()+
   scale_y_log10(breaks=trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x)))+
@@ -288,11 +289,12 @@ dustplotall<-ggplot(data = dustboxdata, mapping=aes(x=CpdID, y=Intensity, group=
 print(dustplotall)
 
 ##Just the top 50 compounds (by intensity)
-top50<-which(dustboxdata$CpdID<=50)
+top50<-which(dustboxdata$MedID<=50)
 dusttopdata<-dustboxdata[top50,]
-dustplottop<-ggplot(data = dusttopdata, mapping=aes(x=CpdID, y=Intensity, group=CpdID))+
+dustplottop<-ggplot(data = dusttopdata, mapping=aes(x=MedID, y=Intensity, group=MedID))+
   geom_boxplot(size=0.1, outlier.size=1)+
-  scale_y_log10(breaks=trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x)))+
+  #scale_y_log10(breaks=trans_breaks("log10", function(x) 10^x),labels = trans_format("log10", math_format(10^.x)))+
+  scale_y_continuous(breaks = c(4,5,6,7,8), labels = c(expression(10^4),expression(10^5),expression(10^6),expression(10^7),expression(10^8)))+
   scale_x_continuous(breaks=seq(from = 0, to = 50, by = 10))+
   theme_classic()+
   xlab("Compound Rank by Median Intensity")+
@@ -303,9 +305,9 @@ print(dustplottop)
 ##Chlorine-containing compounds only
 Cldustdata<-read.csv("C:/Users/Steven Desktop/Documents/MSc2/TargetDecoy/analysis/dust analysis/ChlorAllLog.csv", header=TRUE)
 
-Clboxdata<-Cldustdata[,c(3:27,44,46:50,53)]
+Clboxdata<-Cldustdata[,c(3:27,41,42,48)] 
 Clboxdata<-Clboxdata %>%
-  gather(key="Sample",value="Intensity",-Formula,-MedInt,-Name,-Class, -ClAzoDye, -CpdID,-ClID, -IUPAC)
+  gather(key="Sample",value="Intensity",-Formula,-MedInt,-ClID, -IUPAC)
 zeroindex<-which(Clboxdata$Intensity==0)
 Clboxdata<-Clboxdata[-zeroindex,]
 Clboxdata$Formula<-as.character(Clboxdata$Formula)
@@ -378,7 +380,7 @@ dyes373plot<-ggplot(data = dyedata373, mapping=aes(x=DB373, y=Cl373))+
   geom_line(aes(y=trendline373, x=DB373), colour = "red", size=1)+
   geom_ribbon(aes(ymin=confribbon[,2],ymax=confribbon[,3]), fill="red", alpha=0.1)+
   geom_point(colour="blue", size=2)+
-  scale_x_log10(breaks=c(1e7,1e8),labels = c(expression(10^7),expression(10^8)))+
+  scale_x_log10(limits=c(3e6,1.1e9),breaks=c(1e7,1e8,1e9),labels = c(expression(10^7),expression(10^8),expression(10^9)))+
   scale_y_log10(breaks=c(1e7,1e8,1e9),labels = c(expression(10^7),expression(10^8),expression(10^9)))+
   annotation_logticks(sides="lb")+
   xlab("Br-DB373")+
@@ -405,8 +407,8 @@ dyes93plot<-ggplot(data = dyedata93, mapping=aes(x=DV93, y=Cl93))+
   geom_line(aes(y=trendline93, x=DV93), colour = "red", size=1)+
   geom_ribbon(aes(ymin=confribbon[,2],ymax=confribbon[,3]), fill="red", alpha=0.1)+
   geom_point(colour="blue", size=2)+
-  scale_x_log10(breaks=c(1e7,1e8,1e9),labels = c(expression(10^7),expression(10^8),expression(10^9)))+
-  scale_y_log10(breaks=c(1e8,1e9),labels = c(expression(10^8),expression(10^9)))+
+  scale_x_log10(limits=c(7e6,1.5e9), breaks=c(1e7,1e8,1e9), labels = c(expression(10^7),expression(10^8),expression(10^9)))+
+  scale_y_log10(limits=c(4e7,1e10), breaks=c(1e8,1e9,1e10), labels = c(expression(10^8),expression(10^9),expression(10^10)))+
   annotation_logticks(sides="lb")+
   xlab("Br-DV93")+
   ylab("Cl-DV93")+
@@ -432,8 +434,8 @@ dyesDNAplot<-ggplot(data = dyedataDNA, mapping=aes(x=BDNA, y=CDNA))+
   geom_line(aes(y=trendlineDNA, x=BDNA), colour = "red", size=1)+
   geom_ribbon(aes(ymin=confribbon[,2],ymax=confribbon[,3]), fill="red", alpha=0.1)+
   geom_point(colour="blue", size=2)+
-  scale_x_log10(breaks=c(1e6),labels = c(expression(10^6)))+
-  scale_y_log10(breaks=c(1e6,1e7),labels = c(expression(10^6),expression(10^7)))+
+  scale_x_log10(limits=c(1e5,1e7), breaks=c(1e5,1e6,1e7), labels = c(expression(10^5),expression(10^6),expression(10^7)))+
+  scale_y_log10(limits=c(1e5,1.5e7), breaks=c(1e5,1e6,1e7), labels = c(expression(10^5),expression(10^6),expression(10^7)))+
   annotation_logticks(sides="lb")+
   xlab("Br-DNA")+
   ylab("Cl-DNA")+
@@ -449,14 +451,14 @@ BrClratios<-data.frame(DB373=(BrCldata[,3]/BrCldata[,2]), DV93=(BrCldata[,5]/BrC
 BrClratios.long<-gather(BrClratios, Compound, Ratios)
 BrClratios.long$Compound<-factor(BrClratios.long$Compound, levels = c("DB373","DV93","DNA"))
 
-
-
 boxplotBrCl<-ggplot(data = BrClratios.long, mapping=aes(x=Compound, y=Ratios, group=Compound))+
   geom_boxplot(outlier.size=2,lwd=1,width=0.5)+
-  scale_y_continuous(name="Cl:Br Ratios", trans="log10", breaks=c(1,10,100))+
+  #scale_y_continuous(name="Cl:Br Ratios", trans="log10", breaks=c(1,10,100))+
+  #scale_y_log10(limits=c(1,1e2), breaks=c(1e0,1e1,1e2), labels = c(1e0,expression(10^1),expression(10^2)))+
+  scale_y_continuous(limits=c(0,17), breaks=c(0,5,10,15,20), labels = c(0,5,10,15,20))+
   #coord_trans(y="log10")+
-  theme_Steven()+
-  annotation_logticks(sides="l", scaled=TRUE, size=1)
+  theme_Steven()
+  #annotation_logticks(sides="l", scaled=TRUE, size=1)
   #theme(axis.ticks=element_line())
   #ylab("Cl:Br Ratios")
 print(boxplotBrCl)
@@ -503,6 +505,30 @@ color.plot <- ggplot(data=cldyes, mapping=aes(x=Colour, y=avg))+
              
 print(color.plot)
 
+####All Compounds by Functional Use####
+
+library(ggplot2)
+library(tidyr)
+library(ggdendro)
+library(reshape2)
+library(ggthemes)
+
+cmpdtable<-read.csv("C:/Users/Steven Desktop/Google Drive/MSc 3/Algorithm Paper/SICompounds.csv", header=TRUE)
+
+cmpdtable<-cmpdtable[,c(28:31,33)]
+names(cmpdtable)<-c("Final_Score","Final_Formula_Match","Identity","Category","ID")
+
+grid.plot <- ggplot(data=cmpdtable, mapping=aes(x=ID, y=Final_Score))+
+  geom_bar(stat="identity")+
+  coord_cartesian(ylim=c(0,4))+
+  facet_wrap(~Category, ncol=2)+
+  xlab(label="Compound #")+
+  ylab(label="Compound Match Score")+
+  scale_x_continuous(breaks = pretty(cmpdtable$ID, n = 10))+
+  theme_bw()+
+  theme(axis.text.x = element_text(size = 10))
+
+print(grid.plot)
 
 ####Lockmass Calibration - Searching Space Reduction Figure####
 
