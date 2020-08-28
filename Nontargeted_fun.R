@@ -2892,7 +2892,7 @@ Score.RT<-function(Target,Database,RT.coeff){
       Tpsa<-c(Tpsa,get.tpsa(mol))
       predictRT<-RT.coeff[1]+LogP*RT.coeff[2]+Tpsa*RT.coeff[3]
       Diff.rt<-predictRT-Target$rt[i]
-      temp.score<-log(exp(-0.25*Diff.rt^2/SD.rt^2)) #log(exp(x))=x, so I don't understand why this combination is used here...
+      temp.score<-log(exp(-0.25*Diff.rt^2/SD.rt^2)) #log(exp(x))=x, so I don't understand why this combination is used here... -Steven
     }
     Target$rtscore[i]<-paste(temp.score,collapse=';')
     Target$allscore0[i]<-paste(temp+temp.score,collapse=';')
