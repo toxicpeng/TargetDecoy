@@ -195,6 +195,7 @@ corrplot(
   method = "square", 
   type = "full", 
   order = "hclust",
+  hclust.method = "complete",
   col = colour1(200), 
   tl.col = "black", 
   tl.srt = 90, 
@@ -507,28 +508,32 @@ print(color.plot)
 
 ####All Compounds by Functional Use####
 
-library(ggplot2)
 library(tidyr)
 library(ggdendro)
 library(reshape2)
 library(ggthemes)
+library(ggplot2)
 
 cmpdtable<-read.csv("C:/Users/Steven Desktop/Google Drive/MSc 3/Algorithm Paper/SICompounds.csv", header=TRUE)
 
-cmpdtable<-cmpdtable[,c(28:31,33)]
+cmpdtable<-cmpdtable[,c(29:33)]
 names(cmpdtable)<-c("Final_Score","Final_Formula_Match","Identity","Category","ID")
+
 
 grid.plot <- ggplot(data=cmpdtable, mapping=aes(x=ID, y=Final_Score))+
   geom_bar(stat="identity")+
   coord_cartesian(ylim=c(0,4))+
-  facet_wrap(~Category, ncol=2)+
+  facet_wrap(~Category, ncol=1)+
   xlab(label="Compound #")+
   ylab(label="Compound Match Score")+
   scale_x_continuous(breaks = pretty(cmpdtable$ID, n = 10))+
   theme_bw()+
-  theme(axis.text.x = element_text(size = 10))
+  theme(axis.text.x = element_text(size = 10), panel.grid = element_line(colour="white"))
+#ggsave("CompoundsbyClass2.tiff", device="tiff", dpi=300, width=4, height=8, units="in")
 
 print(grid.plot)
+
+
 
 ####Lockmass Calibration - Searching Space Reduction Figure####
 
@@ -654,6 +659,46 @@ write.table(reflistcal, file="azoref in caldata.csv", sep = ',',row.names=FALSE,
 
 
 
+
+####OPFR Correlation Score Heatmap with Dendrogram####
+
+library(ggplot2)
+library(tidyr)
+library(ggdendro)
+library(reshape2)
+library(grid)
+library(corrplot)
+library(Hmisc)
+
+
+opfrs<-read.csv("C:/Users/Steven Desktop/Google Drive/MSc 3/OPFRs/OPFR Peak Area Table.csv", header=TRUE)
+opfrs.matrix <- as.matrix(opfrs[,2:54])
+rownames(opfrs.matrix) <- opfrs[,1]
+#melt_opfrs<-melt(opfrs.matrix)
+#cast_opfrs<-acast(melt_opfrs, Var2~Var1)
+#opfrs.cormatrix<-rcorr(cast_opfrs)
+opfrs.cormatrix<-rcorr(opfrs.matrix)
+colour1 <- colorRampPalette(c("red","white","blue"))
+par(xpd=TRUE)
+corrplot(
+  opfrs.cormatrix$r, 
+  method = "square", 
+  type = "full", 
+  order = "hclust",
+  hclust.method = "complete",
+  col = colour1(200), 
+  tl.col = "black", 
+  tl.srt = 90, 
+  tl.cex = 0.5,
+  tl.pos = "tl",
+  cl.cex = 1.7, #Font size of color index labels
+  cl.ratio = 0.25, #Width of color index + labels
+  p.mat = opfrs.cormatrix$P, 
+  sig.level = 0.05, 
+  insig = "blank", 
+  addrect = 16, #Number of square groupings to outline 
+  mar = c(1,1,1,1) #Outer graph margins
+)
 
 ####Custom ggplot2 themes####
 theme_Steven <- function () { 
