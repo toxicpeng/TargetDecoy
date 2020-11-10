@@ -43,7 +43,7 @@ data(iso_list)
 
 ###File paths which will likely remain constant###
 path<-here()  ##You should update your folder structure so that the following assignments are correct
-path.lock<-paste(path,"/analysis/jeans analysis", sep="") #This assignment can be changed if necessary
+path.lock<-paste(path,"/analysis/dust analysis", sep="") #This assignment can be changed if necessary
 path.db<-paste(path,"/SMILES_DATABASE", sep="")
 path.siriusTarget<-paste(path,"/Sirius/Target", sep="")
 path.siriusTargetresults<-paste(path,"/Sirius/Target/results", sep="")
@@ -340,7 +340,7 @@ Sirius.build(mylib.Target,Cal.Frag,IsotopeData)
 setwd(path.siriusTargetresults)
 MS2files<-list.files()
 mylib.output<-Import.MS2(mylib.Target,MS2files,Cal.Frag)
-#mylib.output$rtscore<-rep(0,nrow(mylib.output))
+mylib.output$rtscore<-rep(0,nrow(mylib.output))
 #mylib.output3<-Finalscore(mylib.output,weightK,precursor)
 mylib.output3<-Finalscorerank(mylib.output,weightK,precursor)
 setwd(path.finaloutput)
@@ -353,6 +353,7 @@ write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
 #Target<-mylib.output3
 #Decoy<-mylib.output2
 #cutoff<-Find.cut(Target,Decoy)
+cutoff<-0
 
 ###Step 10: Add predicted retention time scores to the compound ID files and apply score cutoff----------------------------------
 
@@ -360,24 +361,24 @@ write.table(mylib.Target,file=allresults.file,sep=',',row.names = FALSE)
 #final ID with rt
 #----------------------------------------]
 
-#RT.coeff<-Predict.RT(Target,Database,cutoff)#rt coefficients and standard deviation
+RT.coeff<-Predict.RT(Target,Database,cutoff)#rt coefficients and standard deviation
 #if (RT.coeff[4]>0.85){##if correlation is not good use the old one
 #  RT.coeff<-c(7.6826,0.4694,0.000446,0.85)
 #}
-#Target.rt<-Score.RT(Target,Database,RT.coeff)
+Target.rt<-Score.RT(Target,Database,RT.coeff)
 #Decoy.rt<-Score.RT(Decoy,Decoydb,RT.coeff)
 #cutoff.rt<-Find.cut(Target.rt,Decoy.rt)#recalculate score cutoff
-#output<-Output(Target,cutoff)
-#setwd(path.finaloutput)
-#write.table(output,file=RT.ID.file, sep=',',row.names = FALSE)
+output<-Output(Target.rt,cutoff)
+setwd(path.finaloutput)
+write.table(output,file=RT.ID.file, sep=',',row.names = FALSE)
 
 ###Step 11: Eliminate duplicates and give a final compound match for each mass---------------------------------------------------
 
 #-------------------------]
 #unique ID
 #-------------------------]
-#setwd(path.finaloutput)
-#Allcpd<-read.table(RT.ID.file,header=TRUE,sep=',',fill=TRUE)
+setwd(path.finaloutput)
+Allcpd<-read.table(RT.ID.file,header=TRUE,sep=',',fill=TRUE)
 Uniqueid<-UniqueID(mylib.output3)
 write.table(Uniqueid,file=uniqueresults.file,sep=',',row.names = FALSE)
 
