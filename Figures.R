@@ -671,9 +671,9 @@ library(corrplot)
 library(Hmisc)
 
 
-opfrs<-read.csv("C:/Users/Steven Desktop/Google Drive/MSc 3/OPFRs/OPFR Peak Area Table.csv", header=TRUE)
-opfrs.matrix <- as.matrix(opfrs[,2:54])
-rownames(opfrs.matrix) <- opfrs[,1]
+opfrs<-read.csv("C:/Users/Steven Desktop/Google Drive/MSc 3/OPFRs/20201015 Data Analysis/Target Areas CSV.csv", header=TRUE)
+opfrs.matrix <- as.matrix(opfrs[,c(2:51,53:54)])
+#rownames(opfrs.matrix) <- opfrs[,1]
 #melt_opfrs<-melt(opfrs.matrix)
 #cast_opfrs<-acast(melt_opfrs, Var2~Var1)
 #opfrs.cormatrix<-rcorr(cast_opfrs)
@@ -696,7 +696,7 @@ corrplot(
   p.mat = opfrs.cormatrix$P, 
   sig.level = 0.05, 
   insig = "blank", 
-  addrect = 16, #Number of square groupings to outline 
+  addrect = 17, #Number of square groupings to outline 
   mar = c(1,1,1,1) #Outer graph margins
 )
 
